@@ -6,6 +6,9 @@ import re
 def main(args):
   prj = args[1]
 
+  if prj.startswith('src/'):
+    prj = prj[4:-3]
+
   params = {
     "name": prj,
     "lname" : prj.lower(),
