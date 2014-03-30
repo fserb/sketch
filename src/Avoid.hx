@@ -39,7 +39,8 @@ class Player extends Entity {
     pos.x = 240;
     pos.y = 240;
     score = 0.0;
-    art = new PixelArt().size(3).color(0xe1b81f,0xa37d1d).pattern(3, 2).fillCircle(size/3, size/3, size/3);
+    art = new PixelArt().size(3).color(0xe1b81f,0xa37d1d, 32)
+      .circle(size/3, size/3, size/3);
   }
 
   // var a = false;
@@ -49,7 +50,7 @@ class Player extends Entity {
 
     size += Game.time;
 
-    art.clear().fillCircle(size/3, size/3, size/3);
+    art.clear().circle(size/3, size/3, size/3);
   }
 
   public function chit(s: Float) {
@@ -69,7 +70,7 @@ class Enemy extends Entity {
   var size = 0.0;
   override public function begin() {
     size = 7 + Math.random()*15;
-    art = new PixelArt().size(5).color(0xe11c57,0x861034).pattern(2, 3).fillCircle(size/5, size/5, size/5);
+    art = new PixelArt().size(5).color(0xe11c57,0x861034, 23).circle(size/5, size/5, size/5);
     pos.x = 480*Math.random();
     pos.y = 480*Math.random();
   }
@@ -114,7 +115,8 @@ class Enemy extends Entity {
                     .speed(Rand(vel.length/10, 50));
     }
 
-    for (e in Game.get("Enemy")) {
+    for (en in Game.get("Enemy")) {
+      var e: Enemy = cast en;
       if (e == this) continue;
       if (e.dead) continue;
       if (pos.distance(e.pos) > size + e.size) continue;
@@ -127,7 +129,7 @@ class Enemy extends Entity {
                       .speed(Rand(e.vel.length/3, 100));
         size -= e.size;
         tads += e.tads;
-        art.clear().fillCircle(size/5, size/5, size/5);
+        art.clear().circle(size/5, size/5, size/5);
         e.remove();
       } else {
         new Particle().color(0xe11c57).xy(pos.x, pos.y)
@@ -137,7 +139,7 @@ class Enemy extends Entity {
                       .speed(Rand(vel.length/3, 100));
         e.size -= size;
         e.tads += tads;
-        e.art.clear().fillCircle(e.size/5, e.size/5, e.size/5);
+        e.art.clear().circle(e.size/5, e.size/5, e.size/5);
         remove();
         return;
       }

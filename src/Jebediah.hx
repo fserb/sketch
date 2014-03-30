@@ -1,5 +1,10 @@
 //@ mgl.bgcolor = 0x000000
 
+
+// TODO:
+//   - add trajectory
+
+
 import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
@@ -20,12 +25,13 @@ class Jebediah extends Game {
 
   override public function begin() {
     player = new Player();
+    new Trajectory();
     energy = new Energy();
     new Planet(240, 400, 8);
-    new Planet(480, 0, 6);
-    new Planet(0, 0, 7);
+    // new Planet(480, 0, 6);
+    // new Planet(0, 0, 7);
 
-    new Asteroid();
+    // new Asteroid();
   }
 
   override public function end() {
@@ -44,9 +50,9 @@ class Jebediah extends Game {
     }
     player.pos.add(d);
 
-    if (Game.get("Asteroid").length == 0) {
-      new Asteroid();
-    }
+    // if (Game.get("Asteroid").length == 0) {
+    //   new Asteroid();
+    // }
 
   }
 }
@@ -59,18 +65,61 @@ class Energy extends Entity {
 
   override public function update() {
     var v = Game.main.player.energy;
-    art.size(80, 4, 1)
+    art.size(1, 80, 4)
       .color(0x444444).rect(0, 0, 80, 4)
       .color(v >= 15 ? C.lightbrown : C.red).rect(0, 0, 80*v/100.0, 4);
   }
 }
 
+class Trajectory extends Entity {
+  override public function update() {
+    var p = Game.main.player;
+    pos.x = 0;
+    pos.y = 0;
+
+    var g = sprite.graphics;
+    g.clear();
+
+    g.lineStyle(1, 0x00FF00, 0.5);
+
+    var x = p.pos.x;
+    var y = p.pos.y;
+    g.moveTo(x, y);
+
+    var pv = p.vel.copy();
+
+    var va = new Vec2(0, 0);
+    var total = 1.0;
+    while (total >= 0.0) {
+
+      if (p.closest != null) {
+        var vv:Vec2 = p.closest.pos.copy();
+        vv.sub(new Vec2(x, y));
+        var dist = vv.length;
+        var a = 10000.0/(dist * dist);
+        va = vv.copy();
+        va.mul(a/dist);
+      }
+
+      x += 0.001*(pv.x + va.x/2.0);
+      y += 0.001*(pv.y + va.y/2.0);
+      total -= 0.001;
+      pv.add(va);
+      g.lineTo(x, y);
+
+    }
+    deltasprite.x = sprite.width/2.0;
+    deltasprite.y = sprite.height/2.0;
+  }
+}
+
 class Player extends Entity {
   public var energy: Float;
+  public var closest: Planet;
   override public function begin() {
     pos.set(240, 240);
 
-    art.size(5, 5, 4).obj([C.darkgrey, C.darkgreen, C.lightbrown, C.green ],
+    art.size(4, 5, 5).obj([C.darkgrey, C.darkgreen, C.lightbrown, C.green ],
       ".000.
        00300
        00100
@@ -78,6 +127,7 @@ class Player extends Entity {
        02220");
     addHitBox(Rect(0, 0, 20, 20));
     energy = 100.0;
+    closest = null;
   }
 
   public function explode() {
@@ -107,19 +157,19 @@ class Player extends Entity {
     if (angle >= 2*Math.PI) angle -= 2*Math.PI;
 
     var mindist = 1e99;
-    var closest = null;
+    closest = null;
     for (p in Game.get("Planet")) {
       var d = pos.distance(p.pos);
       if (d < mindist) {
         mindist = d;
-        closest = p;
+        closest = cast p;
       }
     }
     if (Game.key.b1) {
       var v = closest.pos.copy();
       v.sub(pos);
       var tar = new Vec2(1,0);
-      tar.length = Math.sqrt(9000/v.length);
+      tar.length = Math.sqrt(10000/v.length);
       tar.angle = v.angle - Math.PI/2;
       tar.sub(vel);
       tar.normalize();
@@ -127,18 +177,6 @@ class Player extends Entity {
       accelerate(tar);
     }
     // trace(mindist);
-
-    var g = Game.debugsprite.graphics;
-    g.clear();
-    g.lineStyle(1, 0xFF0000, 0.3);
-    g.moveTo(pos.x, pos.y);
-    g.lineTo(pos.x + vel.x, pos.y + vel.y);
-
-    if (closest != null) {
-      g.lineStyle(1, 0x00FF00, 0.3);
-      g.moveTo(pos.x, pos.y);
-      g.lineTo(closest.pos.x, closest.pos.y);
-    }
   }
 }
 
@@ -153,7 +191,7 @@ class Planet extends Entity {
   }
   override public function begin() {
     pcolor = C.purple;
-    art.size(size*2, size*2, 5).color(pcolor).circle(size, size, size);
+    art.size(5, size*2, size*2).color(pcolor).circle(size, size, size);
     pos.set(240, 240);
     addHitBox(Circle(sprite.width/2.0, sprite.height/2.0, sprite.width/2.0));
   }
@@ -164,7 +202,6 @@ class Planet extends Entity {
     v.sub(p.pos);
     var dist = v.length;
 
-    // debugHit = size == 7;
     if (hit(p)) {
       if(p.vel.length > 120) {
         trace("speed " + pos);
@@ -188,15 +225,17 @@ class Planet extends Entity {
       return;
     }
 
-    var a = 8000/(dist * dist);
-    var va = v.copy();
-    va.mul(a/dist);
-    p.accelerate(va);
+    if (p.closest == this) {
+      var a = 10000.0/(dist * dist);
+      var va = v.copy();
+      va.mul(a/dist);
+      p.accelerate(va);
+    }
 
     var col = C.lerp(C.purple, 0x222222, (dist - 120)/120.0);
     if (col != pcolor) {
       pcolor = col;
-      art.size(size*2, size*2, 5).color(pcolor).circle(size, size, size);
+      art.size(5,size*2, size*2).color(pcolor).circle(size, size, size);
     }
   }
 }
@@ -218,7 +257,7 @@ class Asteroid extends Entity {
     vel.normalize();
     vel.length = 20 + Math.random()*50;
 
-    art.size(size*2, size*2, 5)
+    art.size(5,size*2, size*2)
       .color(C.darkgrey, 0x333333, 35).circle(size, size, size);
     addHitBox(Circle(sprite.width/2.0, sprite.height/2.0, sprite.width/2.0));
   }
@@ -235,7 +274,8 @@ class Asteroid extends Entity {
       var v:Vec2 = p.pos.copy();
       v.sub(pos);
       var dist = v.length;
-      var a = 8000/(dist * dist);
+      if (dist > 120) continue;
+      var a = 10000/(dist * dist);
       v.mul(a/dist);
       accelerate(v);
 

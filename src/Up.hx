@@ -13,17 +13,14 @@ class Up extends Game {
   }
 
   override public function initialize() {
-    display = new Text().xy(10, 10).align(TOP_LEFT).size(2);
   }
 
   var player: Player;
   override public function begin() {
     Game.orderGroups(["Obstacle", "Gold", "Player", "Particle", "Text"]);
-    for (type in [ "Obstacle", "Gold" ]) {
-      for (e in Game.get(type)) {
-        e.remove();
-      }
-    }
+
+    display = new Text().xy(10, 10).align(TOP_LEFT).size(2);
+
     player = new Player();
     player.pos.x = player.pos.y = 240;
     camera = Vec2.make(0, 0);
@@ -80,8 +77,8 @@ class Engine extends Entity {
     relative_angle = a;
     force = 0.0;
     art
-      .size(5).color(0xaa9936, 0x988946).pattern(2, 3).fillRect(0, 0, 4, 4)
-      .color(0xFFFFFF).text(10, 10, n, 2);
+      .size(5, 4, 4).color(0xaa9936, 0x988946, 23).rect(0, 0, 4, 4)
+      .color(0xFFFFFF).text(1.8, 1.8, n, 2);
   }
 
   override public function update() {
@@ -107,8 +104,8 @@ class Player extends Entity {
   var engines: Array<Engine>;
   public function new() {
     super();
-    art.color(0x2ca244,0x1e702f).pattern(2,5,3).size(20)
-       .fillRect(0, 1.5, 4, 1).fillRect(1.5, 0, 1, 4);
+    art.color(0x2ca244,0x1e702f, 253).size(20, 4, 4)
+       .rect(0, 1.5, 4, 1).rect(1.5, 0, 1, 4);
     engines = new Array<Engine>();
     var strings = [ "D", "W", "A", "S" ];
     for (i in 0...4) {
@@ -166,7 +163,7 @@ class Player extends Entity {
 
 class Obstacle extends Entity {
   override public function begin() {
-    art.color(0xac0213, 0x881511).pattern(5, 2).size(7).fillRect(0, 1.5, 4, 1).fillRect(1.5, 0, 1, 4);
+    art.color(0xac0213, 0x881511, 52).size(7, 4, 4).rect(0, 1.5, 4, 1).rect(1.5, 0, 1, 4);
     pos.x = 480*Math.random();
     pos.y = -20 -460*Math.random();
     angle = 2*Math.PI*Math.random();
@@ -192,14 +189,14 @@ class Gold extends Entity {
   var points: Int;
   override public function begin() {
     points = Math.round(1 + Math.random()*8)*10;
-    art.color(0xe3c61e, 0xdacc3d).pattern(2, 3).size(7).fillRect(0, 0, 4, 3.5)
-       .color(0xca8727).pattern(0, 0).size(3).lineRect(0, 0, 4*7/3, 3.5*7/3)
-       .color(0x604013).text(16, 14, "" + points, 1);
+    art.color(0xe3c61e, 0xdacc3d, 23).size(3, 8, 7).rect(0, 0, 8, 7)
+       .color(0xca8727).lrect(0, 0, 8, 7)
+       .color(0x604013).text(4, 3.5, "" + points, 1);
 
     pos.x = 480*Math.random();
     pos.y = -20 -460*Math.random();
 
-    addHitBox(Rect(0, 0, 7*4, 7*3.5));
+    addHitBox(Rect(0, 0, 8*3, 7*3));
   }
 
   override public function update() {
