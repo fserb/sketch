@@ -1,4 +1,4 @@
-//@ mgl.bgcolor = 0x000000
+//@ ugl.bgcolor = 0x000000
 
 
 // TODO:

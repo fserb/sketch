@@ -18,7 +18,7 @@ def main(args):
     ls = l.strip()
     if not ls: continue
     if not ls.startswith("//@"): break
-    p = re.findall(r"//@ mgl\.(\S+) = (\S+)$", ls)[0]
+    p = re.findall(r"//@ ugl\.(\S+) = (\S+)$", ls)[0]
     params[p[0]] = p[1]
 
   data = PROJECT % params
