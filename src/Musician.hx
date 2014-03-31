@@ -11,8 +11,8 @@ class Musician extends Game {
   public var bpm: Float;
   public var level: Int;
   static public function main() {
-    Game.debug = true;
-    new Musician("Street Musician", "");
+    // Game.debug = true;
+    new Musician("Street Musician", "Collect coins, avoid tomatoes");
   }
 
   public var player: Player;
@@ -94,7 +94,8 @@ class Holder extends Entity {
 
 
 class Note extends Entity {
-  var NOTE = "..0..
+  var NOTE = "
+       ..0..
        .000.
        00000
        .000.
@@ -197,8 +198,9 @@ class Tomato extends Entity {
     vel.x = (tx-pos.x)/2.0;
     vel.y = (140-500)/2.0;
 
-    art.size(4, 5, 5).color(C.red).circle(2.5, 2.5, 2.5);
-    addHitBox(Circle(10, 10, 10));
+    art.size(4, 5, 5).color(C.red).circle(2.5, 2.5, 2)
+      .color(C.green).dot(2, 1).dot(2, 0).dot(3, 0);
+    addHitBox(Circle(10, 10, 8));
   }
 
   override public function update() {
