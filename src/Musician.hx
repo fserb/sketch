@@ -3,7 +3,6 @@
 /*
 TODO:
   - add sound
-  - add particle on tomato explosion
 */
 
 import vault.ugl.*;
@@ -26,7 +25,7 @@ class Musician extends Game {
   public var holder: Holder;
 
   override public function initialize() {
-    Game.orderGroups(["", ""]);
+    Game.orderGroups(["Hat", "Holder", "Coin", "Tomato", "Note", "Player", "Text"]);
   }
 
   override public function end() {
@@ -41,28 +40,24 @@ class Musician extends Game {
 
     var n = new Note();
     score = 0;
-    display = new Text().xy(10, 10).align(TOP_LEFT).size(2);
+    display = new Text().xy(20, 10).align(TOP_LEFT).size(2);
     bpm = 60.0;
     level = 0;
   }
 
   var tempo = 0.0;
-  var half = 5.0;
   override public function update() {
     tempo += Game.time;
-    half -= Game.time;
 
-    var spb = 60.0/bpm;
+    var spb = 60.0/(4*bpm);
     if (tempo >= spb) {
-      new Note();
       tempo -= spb;
-    }
-    if (half < 0 && tempo >= spb/2.0) {
-      half = 3 + 7*Math.random();
-      new Note();
+      if (Math.random() < 0.2) {
+        new Note();
+      }
     }
 
-    display.text("$ " + score);
+    display.text("$" + score);
   }
 }
 
@@ -100,17 +95,17 @@ class Holder extends Entity {
 
 
 class Note extends Entity {
+  var NOTE = "..0..
+       .000.
+       00000
+       .000.
+       .000.";
   public var front = false;
   public var onhit = false;
   public var missed = false;
   public var good = false;
   override public function begin() {
-    art.size(4, 5, 5).obj([C.orange],
-      "..0..
-       .000.
-       00000
-       .000.
-       .000.");
+    art.size(4, 5, 5).obj([C.orange], NOTE);
     pos.x = 500;
     pos.y = 80;
     addHitBox(Rect(0, 0, 20, 20));
@@ -118,10 +113,15 @@ class Note extends Entity {
 
   override public function update() {
     if (hit(Game.main.holder)) {
+      if (front) {
+        art.size(4, 5, 5).obj([C.red], NOTE);
+      }
+
       onhit = true;
       if (Game.key.up_pressed && front) {
         good = true;
-        new Coin();
+        var dist = Math.abs(pos.x  - Game.main.holder.pos.x)/20.0;
+        new Coin(dist);
       }
     } else if (front) {
       if (onhit) {
@@ -136,7 +136,7 @@ class Note extends Entity {
     }
 
     if (!good && !missed) {
-      pos.x -= 50*Game.time;
+      pos.x -= Game.main.bpm*Game.time;
     } else {
       sprite.alpha -= Game.time/0.5;
     }
@@ -177,7 +177,7 @@ class Player extends Entity {
     angle = EMath.clamp(angle, -Math.PI/5, Math.PI/5);
 
     pos.x = 240 + 200*Math.sin(angle);
-    pos.y = 240 - 100*Math.cos(angle);
+    pos.y = 340 - 200*Math.cos(angle);
 
   }
 }
@@ -198,12 +198,21 @@ class Tomato extends Entity {
 
   override public function update() {
     if (hit(Game.main.player)) {
-      Game.main.end();
+      new Particle().color(C.red).xy(pos.x, pos.y).count(Const(500))
+        .size(Rand(10, 5)).speed(Rand(0, vel.length))
+        .delay(Const(0)).duration(Rand(0.5, 0.5));
+      remove();
+      Game.endGame();
     }
   }
 }
 
 class Coin extends Entity {
+  var value: Int;
+  override public function new(dist: Float) {
+    super();
+    value = Math.round(1 + (1.0 - dist)*9);
+  }
   override public function begin() {
     pos.x = Math.random()*480;
     pos.y = 500;
@@ -219,8 +228,8 @@ class Coin extends Entity {
 
   override public function update() {
     if (hit(Game.main.player)) {
-      Game.main.score += 5;
-      new Text().text("$5").duration(1).xy(pos.x, pos.y).move(0, -20);
+      Game.main.score += value;
+      new Text().text("$" + value).duration(1).xy(pos.x, pos.y).move(0, -20);
       remove();
     }
   }
