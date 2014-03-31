@@ -1,10 +1,5 @@
 //@ ugl.bgcolor = 0x444444
 
-/*
-TODO:
-  - add sound
-*/
-
 import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
@@ -16,7 +11,7 @@ class Musician extends Game {
   public var bpm: Float;
   public var level: Int;
   static public function main() {
-    Game.debug = true;
+    // Game.debug = true;
     new Musician("Street Musician", "");
   }
 
@@ -46,6 +41,7 @@ class Musician extends Game {
   }
 
   var tempo = 0.0;
+  var n = 0;
   override public function update() {
     tempo += Game.time;
 
@@ -58,6 +54,14 @@ class Musician extends Game {
     }
 
     display.text("$" + score);
+
+    if (Game.key.b1_pressed) {
+      new Sound(n).explosion().play();
+      trace(n);
+      n++;
+    }
+
+
   }
 }
 
@@ -104,11 +108,13 @@ class Note extends Entity {
   public var onhit = false;
   public var missed = false;
   public var good = false;
+  var snd: Sound;
   override public function begin() {
     art.size(4, 5, 5).obj([C.orange], NOTE);
     pos.x = 500;
     pos.y = 80;
     addHitBox(Rect(0, 0, 20, 20));
+    snd = new Sound(0).blip();
   }
 
   override public function update() {
@@ -120,6 +126,7 @@ class Note extends Entity {
       onhit = true;
       if (Game.key.up_pressed && front) {
         good = true;
+        snd.play();
         var dist = Math.abs(pos.x  - Game.main.holder.pos.x)/20.0;
         new Coin(dist);
       }
@@ -169,8 +176,8 @@ class Player extends Entity {
   }
 
   override public function update() {
-    if (Game.key.left) angle -= Math.PI*2*Game.time/4.0;
-    if (Game.key.right) angle += Math.PI*2*Game.time/4.0;
+    if (Game.key.left) angle -= Math.PI*2*Game.time/3.0;
+    if (Game.key.right) angle += Math.PI*2*Game.time/3.0;
     if (angle != 0) {
       angle -= angle*0.02;
     }
@@ -199,9 +206,10 @@ class Tomato extends Entity {
   override public function update() {
     if (hit(Game.main.player)) {
       new Particle().color(C.red).xy(pos.x, pos.y).count(Const(500))
-        .size(Rand(10, 5)).speed(Rand(0, vel.length))
+        .size(Rand(10, 5)).speed(Rand(0, vel.length/2.0))
         .delay(Const(0)).duration(Rand(0.5, 0.5));
       remove();
+      new Sound(16).explosion().play();
       Game.endGame();
     }
   }
@@ -230,6 +238,7 @@ class Coin extends Entity {
     if (hit(Game.main.player)) {
       Game.main.score += value;
       new Text().text("$" + value).duration(1).xy(pos.x, pos.y).move(0, -20);
+      new Sound(12).coin().play();
       remove();
     }
   }
