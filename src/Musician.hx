@@ -11,13 +11,14 @@ class Musician extends Game {
   public var bpm: Float;
   public var level: Int;
   static public function main() {
-    // Game.debug = true;
+    Game.debug = true;
     new Musician("Street Musician", "");
   }
 
   public var player: Player;
   public var hat: Hat;
   public var holder: Holder;
+  public var combo: Int;
 
   override public function initialize() {
     Game.orderGroups(["Hat", "Holder", "Coin", "Tomato", "Note", "Player", "Text"]);
@@ -38,10 +39,10 @@ class Musician extends Game {
     display = new Text().xy(20, 10).align(TOP_LEFT).size(2);
     bpm = 60.0;
     level = 0;
+    combo = 0;
   }
 
   var tempo = 0.0;
-  var n = 0;
   override public function update() {
     tempo += Game.time;
 
@@ -55,13 +56,7 @@ class Musician extends Game {
 
     display.text("$" + score);
 
-    if (Game.key.b1_pressed) {
-      new Sound(n).explosion().play();
-      trace(n);
-      n++;
-    }
-
-
+    bpm = 60.0 + 140.0*score/2000.0 + combo;
   }
 }
 
@@ -127,6 +122,7 @@ class Note extends Entity {
       if (Game.key.up_pressed && front) {
         good = true;
         snd.play();
+        Game.main.combo++;
         var dist = Math.abs(pos.x  - Game.main.holder.pos.x)/20.0;
         new Coin(dist);
       }
@@ -134,10 +130,12 @@ class Note extends Entity {
       if (onhit) {
         onhit = false;
         missed = true;
+        Game.main.combo = 0;
         new Tomato();
       }
       if (Game.key.up_pressed) {
         missed = true;
+        Game.main.combo = 0;
         new Tomato();
       }
     }
@@ -194,7 +192,7 @@ class Tomato extends Entity {
     pos.x = Math.random()*480;
     pos.y = 500;
 
-    var tx = 140 + 200*Math.random();
+    var tx = 120 + 240*Math.random();
 
     vel.x = (tx-pos.x)/2.0;
     vel.y = (140-500)/2.0;
@@ -212,6 +210,10 @@ class Tomato extends Entity {
       new Sound(16).explosion().play();
       Game.endGame();
     }
+
+    if (pos.y < 0) {
+      remove();
+    }
   }
 }
 
@@ -219,13 +221,13 @@ class Coin extends Entity {
   var value: Int;
   override public function new(dist: Float) {
     super();
-    value = Math.round(1 + (1.0 - dist)*9);
+    value = Math.round(Game.main.combo + (1.0 - dist)*9);
   }
   override public function begin() {
     pos.x = Math.random()*480;
     pos.y = 500;
 
-    var tx = 140 + 200*Math.random();
+    var tx = 120 + 240*Math.random();
 
     vel.x = (tx-pos.x)/1.0;
     vel.y = (140-500)/1.0;
@@ -241,6 +243,10 @@ class Coin extends Entity {
       new Sound(12).coin().play();
       remove();
     }
+
+    if (pos.y < 0) {
+      remove();
+    }
   }
 }
 
@@ -249,19 +255,6 @@ class Hat extends Entity {
   override public function begin() {
     art.size(8, 4, 3).obj([C.black], HAT);
     pos.x = pos.y = 240;
-  }
-
-  override public function update() {
-    var s = 5.0*((Game.main.score - Game.main.level*50)/50.0);
-
-    art.clear().obj([C.black], HAT);
-    if (s >= 1.0) {
-      art.color(C.yellow).hline(0, s-1, 0);
-    }
-    if (s >= 5.0) {
-      Game.main.level ++;
-      Game.main.bpm *= 1.1;
-    }
   }
 }
 
