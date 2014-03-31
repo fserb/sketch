@@ -2,7 +2,6 @@
 
 
 // TODO:
-//   - add trajectory
 
 
 import vault.ugl.*;
@@ -28,8 +27,8 @@ class Jebediah extends Game {
     new Trajectory();
     energy = new Energy();
     new Planet(240, 400, 8);
-    // new Planet(480, 0, 6);
-    // new Planet(0, 0, 7);
+    new Planet(480, 0, 6);
+    new Planet(0, 0, 7);
 
     // new Asteroid();
   }
@@ -87,23 +86,19 @@ class Trajectory extends Entity {
     g.moveTo(x, y);
 
     var pv = p.vel.copy();
-
     var va = new Vec2(0, 0);
-    var total = 1.0;
+
+    var total = 10.0;
+    var dt = 0.1;
     while (total >= 0.0) {
 
       if (p.closest != null) {
-        var vv:Vec2 = p.closest.pos.copy();
-        vv.sub(new Vec2(x, y));
-        var dist = vv.length;
-        var a = 10000.0/(dist * dist);
-        va = vv.copy();
-        va.mul(a/dist);
+        va = p.closest.attract(new Vec2(x, y), dt);
       }
 
-      x += 0.001*(pv.x + va.x/2.0);
-      y += 0.001*(pv.y + va.y/2.0);
-      total -= 0.001;
+      x += dt*(pv.x + va.x/2.0);
+      y += dt*(pv.y + va.y/2.0);
+      total -= dt;
       pv.add(va);
       g.lineTo(x, y);
 
@@ -140,7 +135,7 @@ class Player extends Entity {
   override public function update() {
     if (Game.key.up && energy > 0) {
       energy -= 10*Game.time;
-      var v = new Vec2(0, vel.length == 0 ? -50 : -3);
+      var v = new Vec2(0, vel.length == 0 ? -50 : -5);
       v.rotate(angle);
       accelerate(v);
       var b = new Vec2(0, 15);
@@ -166,15 +161,18 @@ class Player extends Entity {
       }
     }
     if (Game.key.b1) {
+      var va = closest.attract(pos, Game.time);
+
       var v = closest.pos.copy();
       v.sub(pos);
-      var tar = new Vec2(1,0);
-      tar.length = Math.sqrt(10000/v.length);
-      tar.angle = v.angle - Math.PI/2;
-      tar.sub(vel);
-      tar.normalize();
-      tar.mul(2);
-      accelerate(tar);
+      va.mul(v.length);
+      va.angle = v.angle - Math.PI/2;
+
+      // va.sub(vel);
+      // va.normalize();
+      // accelerate(va);
+      vel.x = va.x;
+      vel.y = va.y;
     }
     // trace(mindist);
   }
@@ -194,6 +192,15 @@ class Planet extends Entity {
     art.size(5, size*2, size*2).color(pcolor).circle(size, size, size);
     pos.set(240, 240);
     addHitBox(Circle(sprite.width/2.0, sprite.height/2.0, sprite.width/2.0));
+  }
+
+  public function attract(p: Vec2, t: Float): Vec2 {
+    var v = pos.copy();
+    v.sub(p);
+    var dist = v.length;
+    var a = t*1000000.0/(dist * dist);
+    v.mul(a/dist);
+    return v;
   }
 
   override public function update() {
@@ -226,10 +233,7 @@ class Planet extends Entity {
     }
 
     if (p.closest == this) {
-      var a = 10000.0/(dist * dist);
-      var va = v.copy();
-      va.mul(a/dist);
-      p.accelerate(va);
+      p.accelerate(attract(p.pos, Game.time));
     }
 
     var col = C.lerp(C.purple, 0x222222, (dist - 120)/120.0);
@@ -271,13 +275,12 @@ class Asteroid extends Entity {
 
   override public function update() {
     for (p in Game.get("Planet")) {
+      var pl: Planet = cast p;
       var v:Vec2 = p.pos.copy();
       v.sub(pos);
       var dist = v.length;
       if (dist > 120) continue;
-      var a = 10000/(dist * dist);
-      v.mul(a/dist);
-      accelerate(v);
+      accelerate(pl.attract(pos, Game.time));
 
       if (hit(p)) {
         explode();
@@ -296,4 +299,3 @@ class Asteroid extends Entity {
     }
   }
 }
-
