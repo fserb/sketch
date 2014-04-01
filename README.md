@@ -6,4 +6,5 @@ Each game is a single haxe file that uses [ugl](https://github.com/fserb/vault/t
 
 They currently compile to Flash and Mac/Linux/Windows. I'm working on HTML5 compatibility.
 
-Some of them are based on other games I've seen around. Just don't assume that all those games are my original idea.
+Some of them are based on other games I've seen around.
+

@@ -1,3 +1,5 @@
+// based on Aba Games' WASD THRUST
+
 import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
