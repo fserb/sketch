@@ -4,7 +4,7 @@
 - improve player movement
 - make it harder
 - make level transition
-
+- remove direction, make jump + key
 */
 
 import vault.ugl.*;
@@ -21,7 +21,7 @@ class Amaze extends Game {
   public var maze: Maze;
   public var player: Player;
   public var gate: Gate;
-  public var level: Int = 10;
+  public var level: Int = 1;
 
   override public function initialize() {
     Game.orderGroups(["Maze", "Key", "Gate", "Player", "Text"]);
@@ -178,15 +178,27 @@ class Maze extends Entity {
 class Player extends Entity {
   public var mx: Int;
   public var my: Int;
+  public var tx: Int;
+  public var ty: Int;
   var facing: Int;
   var cooldown: Float;
+  public var leaving = -1.0;
+
   override public function begin() {
     mx = 7;
     my = 7;
+    tx = 7;
+    ty = 7;
     pos = new Vec2(mx*32 + 17, my*32 + 17);
     facing = 0;
     cooldown = 0.0;
     addHitBox(Rect(0, 0, 16, 16));
+  }
+
+  public function door() {
+    if (leaving < 0) {
+      leaving = 1.0;
+    }
   }
 
   function moveTo(d: Int) {
@@ -194,52 +206,55 @@ class Player extends Entity {
     angle = d == 1 ? 0: d == 2 ? Math.PI/2 : d == 4 ? Math.PI : 3*Math.PI/2;
 
     if (Game.main.maze.map[mx][my] & d == d) return;
+    var dx = Math.abs(pos.x - (tx*32 + 17))/32;
+    var dy = Math.abs(pos.y - (ty*32 + 17))/32;
     switch(d) {
-      case 1: if (my > 0) my--;
-      case 2: if (mx < 14) mx++;
-      case 4: if (my < 14) my++;
-      case 8: if (mx > 0) mx--;
+      case 1: if (my > 0 && dx < 0.1) ty = my - 1;
+      case 2: if (mx < 14 && dy < 0.1) tx = mx + 1;
+      case 4: if (my < 14 && dx < 0.1) ty = my + 1;
+      case 8: if (mx > 0 && dy < 0.1) tx = mx - 1;
     }
   }
 
   function jump() {
     if (cooldown > 0) return;
     if (Game.main.maze.map[mx][my] & facing == 0) return;
+    var dx = Math.abs(pos.x - (tx*32 + 17))/32;
+    var dy = Math.abs(pos.y - (ty*32 + 17))/32;
     switch(facing) {
-      case 1: if (my > 0) my--;
-      case 2: if (mx < 14) mx++;
-      case 4: if (my < 14) my++;
-      case 8: if (mx > 0) mx--;
+      case 1: if (my > 0 && dx < 0.1) ty = my - 1;
+      case 2: if (mx < 14 && dy < 0.1) tx = mx + 1;
+      case 4: if (my < 14 && dx < 0.1) ty = my + 1;
+      case 8: if (mx > 0 && dy < 0.1) tx = mx - 1;
     }
     cooldown = 1.0;
   }
 
-  var leaving = -1.0;
-  public function door() {
-    if (leaving < 0) {
-      leaving = 1.0;
-    }
-  }
-
   override public function update() {
-    var target = new Vec2(mx*32 + 17, my*32 + 17);
-    target.sub(pos);
-    var step = 3*32*Game.time;
-    if (target.length >= step) {
-      target.clamp(step);
-      pos.add(target);
-    } else if (leaving < 0) {
-      pos = new Vec2(mx*32 + 17, my*32 + 17);
-      if (Game.key.left_pressed) moveTo(8);
-      else if (Game.key.right_pressed) moveTo(2);
-      else if (Game.key.up_pressed) moveTo(1);
-      else if (Game.key.down_pressed) moveTo(4);
-      else if (Game.key.left) moveTo(8);
+    mx = Math.round((pos.x - 17)/32);
+    my = Math.round((pos.y - 17)/32);
+
+    if (Game.key.b1) jump();
+    else if (leaving < 0) {
+      if (Game.key.left) moveTo(8);
       else if (Game.key.right) moveTo(2);
       else if (Game.key.up) moveTo(1);
       else if (Game.key.down) moveTo(4);
-      if (Game.key.b1) jump();
+      var ppx = Math.abs(pos.x - tx*32 - 17);
+      var ppy = Math.abs(pos.y - ty*32 - 17);
+      if (!Game.key.left && !Game.key.right && ppx > 30) tx = mx;
+      if (!Game.key.up && !Game.key.down && ppy > 30) ty = my;
     }
+
+    var pp = new Vec2(tx*32 + 17, ty*32 + 17);
+    // Game.debugsprite.graphics.beginFill(0x0000FF, 1.0);
+    // Game.debugsprite.graphics.drawCircle(pp.x, pp.y, 2);
+
+    pp.sub(pos);
+    pp.clamp(4*32*Game.time);
+
+    pos.add(pp);
+
     if (leaving >= 0) {
       leaving = Math.max(0, leaving - 2*Game.time);
       art.color(0xFFFFFF).rect(0, 0, 16*leaving, 16*leaving);
@@ -319,6 +334,7 @@ class Bot extends Entity {
       var y = reduceY(mx, my, pl.my > my ? 1 : -1, false);
       if (Math.abs(pl.my - my) <= Math.abs(y - my)) {
          evil = true;
+         tx = mx;
          ty = pl.my;
       }
     }
@@ -326,6 +342,7 @@ class Bot extends Entity {
       var x = reduceX(mx, my, pl.mx > mx ? 1 : -1, false);
       if (Math.abs(pl.mx - mx) <= Math.abs(x - mx)) {
          evil = true;
+         ty = my;
          tx = pl.mx;
       }
     }
@@ -357,7 +374,7 @@ class Bot extends Entity {
       art.size(3).color(0xc24079).lcircle(7/4,7/4,7/4);
     }
 
-    if (hit(Game.main.player)) {
+    if (hit(Game.main.player) && Game.main.player.leaving < 0) {
       Game.endGame();
     }
   }
