@@ -319,6 +319,23 @@ class Bot extends Entity {
   }
 
   function findNewTarget() {
+    var dx = EMath.sign(Game.main.player.mx - mx);
+    var dy = EMath.sign(Game.main.player.my - my);
+
+    if (Math.random() < 0.5) {
+      var k = reduceX(mx, my, EMath.sign(dx), true);
+      if (k != mx) {
+        tx = k;
+        return;
+      }
+    } else {
+      var k = reduceY(mx, my, EMath.sign(dy), true);
+      if (k != my) {
+        ty = k;
+        return;
+      }
+    }
+
     switch(Std.int(Math.random()*4)) {
       case 0: ty = reduceY(mx, my, -1, true);
       case 1: ty = reduceY(mx, my, 1, true);
