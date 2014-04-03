@@ -266,14 +266,17 @@ class Player extends Entity {
     if (Game.main.maze.map[mx][my] & facing == 0) return;
     var dx = Math.abs(pos.x - (tx*32 + 17))/32;
     var dy = Math.abs(pos.y - (ty*32 + 17))/32;
+    var jumped = false;
     switch(facing) {
-      case 1: if (my > 0 && dx < 0.1) ty = my - 1;
-      case 2: if (mx < 14 && dy < 0.1) tx = mx + 1;
-      case 4: if (my < 14 && dx < 0.1) ty = my + 1;
-      case 8: if (mx > 0 && dy < 0.1) tx = mx - 1;
+      case 1: if (my > 0 && dx < 0.1) { ty = my - 1; jumped = true; }
+      case 2: if (mx < 14 && dy < 0.1) { tx = mx + 1; jumped = true; }
+      case 4: if (my < 14 && dx < 0.1) { ty = my + 1; jumped = true; }
+      case 8: if (mx > 0 && dy < 0.1) { tx = mx - 1; jumped = true; }
     }
-    cooldown = 1.0;
-    jumpsnd.play();
+    if (jumped) {
+      cooldown = 1.0;
+      jumpsnd.play();
+    }
   }
 
   override public function update() {
