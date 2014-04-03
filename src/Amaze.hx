@@ -7,7 +7,7 @@ import vault.ugl.PixelArt.C;
 
 class Amaze extends Game {
   static public function main() {
-    Game.debug = true;
+    // Game.debug = true;
     new Amaze("Amaze", "maze + jump");
   }
 
