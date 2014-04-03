@@ -11,7 +11,6 @@ class Musician extends Game {
   public var bpm: Float;
   public var level: Int;
   static public function main() {
-    // Game.debug = true;
     new Musician("Street Musician", "Collect coins, avoid tomatoes");
   }
 
@@ -26,6 +25,12 @@ class Musician extends Game {
 
   override public function end() {
     player.remove();
+  }
+
+  override public function final() {
+    new Text().xy(240, 200).size(2).text("you made");
+    new Text().xy(240, 240).size(4).text("$"+ score);
+    new Text().text("click to begin").align(BOTTOM_CENTER).xy(240, 470).size(1).color(0xFF999999);
   }
 
   override public function begin() {
