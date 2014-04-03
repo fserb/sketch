@@ -1,10 +1,7 @@
 //@ ugl.bgcolor = 0x3dbf86
 
 /*
-- improve player movement
-- make it harder
 - make level transition
-- remove direction, make jump + key
 */
 
 import vault.ugl.*;
@@ -21,23 +18,30 @@ class Amaze extends Game {
   public var maze: Maze;
   public var player: Player;
   public var gate: Gate;
-  public var level: Int = 1;
+  public var level: Int = 0;
 
   override public function initialize() {
-    Game.orderGroups(["Maze", "Key", "Gate", "Player", "Text"]);
+    Game.orderGroups(["Maze", "Key", "Gate", "Player", "Final", "Text"]);
   }
 
   override public function end() {
-    level = 0;
+    player.remove();
+    player = null;
   }
 
   override public function begin() {
+    level = 0;
     next();
+  }
+
+  override public function final() {
+    new Final();
   }
 
   public function next() {
     Game.clear();
-    level ++;
+    level++;
+    Game.totalTime = 0;
     maze = new Maze();
   }
 
@@ -171,7 +175,12 @@ class Maze extends Entity {
     if (y < 14 && getm(sel+15) != 15) { andm(sel, 11); andm(sel + 15, 14); }
   }
 
+  var s = 0;
   override public function update() {
+    if (Game.key.b2_pressed) {
+      trace(s);
+      new Sound(s++).powerup().play();
+    }
   }
 }
 
@@ -183,6 +192,7 @@ class Player extends Entity {
   var facing: Int;
   var cooldown: Float;
   public var leaving = -1.0;
+  var jumpsnd: Sound;
 
   override public function begin() {
     mx = 7;
@@ -193,6 +203,7 @@ class Player extends Entity {
     facing = 0;
     cooldown = 0.0;
     addHitBox(Rect(0, 0, 16, 16));
+    jumpsnd = new Sound(4).jump();
   }
 
   public function door() {
@@ -228,6 +239,7 @@ class Player extends Entity {
       case 8: if (mx > 0 && dy < 0.1) tx = mx - 1;
     }
     cooldown = 1.0;
+    jumpsnd.play();
   }
 
   override public function update() {
@@ -257,15 +269,19 @@ class Player extends Entity {
 
     if (leaving >= 0) {
       leaving = Math.max(0, leaving - 2*Game.time);
-      art.color(0xFFFFFF).rect(0, 0, 16*leaving, 16*leaving);
+      var s = 8*leaving;
+      art.color(0xFFFFFF).circle(s, s, s)
+         .color(0x3dbf86).rect(0, s+1, 2*s+1, s/2+1);
       if (leaving == 0) {
         Game.main.next();
       }
     } else {
       cooldown = Math.max(0, cooldown - Game.time/3.0);
-      var s = Math.round(5 + 3*(1.0-cooldown));
+      // var s = Math.round(5 + 3*(1.0-cooldown));
+      var s = 8;
+
       art.color(0xFFFFFF).circle(s, s, s)
-         .color(0xCCCCCC).rect(s - 2, 0, 4, s);
+         .color(0x3dbf86).rect(0, s+1, 2*s+1, cooldown <= 0 ? s/2+1 : s);
     }
   }
 }
@@ -319,23 +335,26 @@ class Bot extends Entity {
   }
 
   function findNewTarget() {
-    var dx = EMath.sign(Game.main.player.mx - mx);
-    var dy = EMath.sign(Game.main.player.my - my);
+    if (Game.main.player != null) {
+      var dx = EMath.sign(Game.main.player.mx - mx);
+      var dy = EMath.sign(Game.main.player.my - my);
 
-    if (Math.random() < 0.5) {
-      var k = reduceX(mx, my, EMath.sign(dx), true);
-      if (k != mx) {
-        tx = k;
-        return;
-      }
-    } else {
-      var k = reduceY(mx, my, EMath.sign(dy), true);
-      if (k != my) {
-        ty = k;
-        return;
+      if (Game.totalTime >= 2.0) {
+        if (Math.random() < 0.5) {
+          var k = reduceX(mx, my, EMath.sign(dx), true);
+          if (k != mx) {
+            tx = k;
+            return;
+          }
+        } else {
+          var k = reduceY(mx, my, EMath.sign(dy), true);
+          if (k != my) {
+            ty = k;
+            return;
+          }
+        }
       }
     }
-
     switch(Std.int(Math.random()*4)) {
       case 0: ty = reduceY(mx, my, -1, true);
       case 1: ty = reduceY(mx, my, 1, true);
@@ -346,6 +365,7 @@ class Bot extends Entity {
 
   function chasePlayer() {
     var pl = Game.main.player;
+    if (pl == null) return;
     evil = false;
     if (pl.mx == mx) {
       var y = reduceY(mx, my, pl.my > my ? 1 : -1, false);
@@ -368,13 +388,15 @@ class Bot extends Entity {
   override public function update() {
     var target = new Vec2(mx*32 + 17, my*32 + 17);
     target.sub(pos);
-    var step = (evil ? 3.1 : 1.5)*32*Game.time;
+    var step = (evil ? 4.5 : 2.5)*32*Game.time;
     if (target.length >= step) {
       target.clamp(step);
       pos.add(target);
     } else {
       pos = new Vec2(mx*32 + 17, my*32 + 17);
-      chasePlayer();
+      if (Game.totalTime >= 5.0) {
+        chasePlayer();
+      }
       while (mx == tx && my == ty) {
         findNewTarget();
       }
@@ -391,7 +413,9 @@ class Bot extends Entity {
       art.size(3).color(0xc24079).lcircle(7/4,7/4,7/4);
     }
 
-    if (hit(Game.main.player) && Game.main.player.leaving < 0) {
+    if (Game.main.player != null &&
+        hit(Game.main.player) && Game.main.player.leaving < 0) {
+      new Sound(2).explosion().play();
       Game.endGame();
     }
   }
@@ -414,7 +438,9 @@ class Gate extends Entity {
       o = Math.max(0.0, o - 4*Game.time);
       art.color(0x444444).rect(0, 0, 20, 20).color(0x3dbf86).rect(10 - 5*o, 10 - 5*o, 10*o, 10*o);
     }
-    if (unlocked && hit(Game.main.player)) {
+    if (unlocked && Game.main.player != null &&
+        Game.main.player.leaving <= 0 && hit(Game.main.player)) {
+      new Sound(3).powerup().play();
       Game.main.player.door();
     }
   }
@@ -427,9 +453,27 @@ class Key extends Entity {
   }
 
   override public function update() {
-    if (hit(Game.main.player)) {
+    if (Game.main.player != null && hit(Game.main.player)) {
       remove();
       Game.main.gate.open();
+      new Sound(12).coin().play();
     }
+  }
+}
+
+class Final extends Entity {
+  var t: Text;
+  var step: Float;
+  override public function begin() {
+    art.color(0xFFFFFF).rect(0, 0, 480, 80);
+    t = new Text().size(3).color(0xff000000).text("You've reached level " + Game.main.level);
+    t.pos.x = pos.x = -240;
+    t.pos.y = pos.y = 240;
+    step = 0;
+  }
+
+  override public function update() {
+    step = Math.min(1.0, step + Game.time/0.3);
+    t.pos.x = pos.x = -240 + 480*step;
   }
 }
