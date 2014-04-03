@@ -8,7 +8,7 @@ import vault.ugl.PixelArt.C;
 class Amaze extends Game {
   static public function main() {
     // Game.debug = true;
-    new Amaze("Amaze", "maze + jump");
+    new Amaze("Amaze", "maze + jump + key");
   }
 
   public var maze: Maze;
@@ -215,14 +215,6 @@ class Maze extends Entity {
     if (x < 14 && getm(sel+1) != 15)  { andm(sel, 13); andm(sel + 1, 7); }
     if (y > 0 && getm(sel-15) != 15)  { andm(sel, 14); andm(sel - 15, 11); }
     if (y < 14 && getm(sel+15) != 15) { andm(sel, 11); andm(sel + 15, 14); }
-  }
-
-  var s = 0;
-  override public function update() {
-    if (Game.key.b2_pressed) {
-      trace(s);
-      new Sound(s++).powerup().play();
-    }
   }
 }
 
