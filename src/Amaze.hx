@@ -1,9 +1,5 @@
 //@ ugl.bgcolor = 0x3dbf86
 
-/*
-- make level transition
-*/
-
 import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
@@ -21,7 +17,7 @@ class Amaze extends Game {
   public var level: Int = 0;
 
   override public function initialize() {
-    Game.orderGroups(["Maze", "Key", "Gate", "Player", "Final", "Text"]);
+    Game.orderGroups(["Maze", "Key", "Gate", "Bot", "Player", "Final", "Transition", "Text"]);
   }
 
   override public function end() {
@@ -38,14 +34,60 @@ class Amaze extends Game {
     new Final();
   }
 
-  public function next() {
+  public function buildNext() {
     Game.clear();
     level++;
     Game.totalTime = 0;
     maze = new Maze();
   }
 
+  public function next() {
+    if (level == 0) {
+      buildNext();
+    } else {
+      player.remove();
+      player = null;
+      new Transition();
+    }
+  }
+}
+
+class Transition extends Entity {
+  var t = 0.0;
+  var txt: Text = null;
+  var f = 0.0;
+  override public function begin() {
+    pos.x = Game.main.gate.pos.x;
+    pos.y = Game.main.gate.pos.y;
+  }
   override public function update() {
+    t += Game.time/0.5;
+    var g = sprite.graphics;
+
+    if (t >= 0 && t <= 1.0) {
+      g.clear();
+      g.beginFill(0x444444);
+      g.drawRect(0, 0, 480*2*t, 480*2*t);
+    } else if (f == 0.0) {
+      pos.x = pos.y = 240;
+      if (txt == null) {
+        txt = new Text().xy(240, 240).size(3).color(0xFFFFFFFF).text("Level " + (Game.main.level + 1));
+      }
+      if (Game.key.any_pressed) {
+        txt.remove();
+        f += Game.time;
+      }
+    } else {
+      f += Game.time/0.5;
+      g.clear();
+      g.beginFill(0x444444);
+      g.drawRect(0, 0, 480, 480);
+      g.beginFill(0x3dbf86);
+      g.drawRect(240 - 240*f, 240 - 240*f, 480*f, 480*f);
+      if (f >= 1.0) {
+        Game.main.buildNext();
+      }
+    }
   }
 }
 
@@ -388,7 +430,7 @@ class Bot extends Entity {
   override public function update() {
     var target = new Vec2(mx*32 + 17, my*32 + 17);
     target.sub(pos);
-    var step = (evil ? 4.5 : 2.5)*32*Game.time;
+    var step = (evil ? 5 : 2.5)*32*Game.time;
     if (target.length >= step) {
       target.clamp(step);
       pos.add(target);
