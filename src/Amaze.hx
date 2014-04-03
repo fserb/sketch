@@ -113,8 +113,7 @@ class Maze extends Entity {
     Game.main.gate = new Gate();
     var key = new Key();
     var p0 = Std.int(Math.random()*15*15);
-    var p1 = p0;
-    while (p0 == p1) p1 = Std.int(Math.random()*15*15);
+    var p1 = 15*15 - 1 - p0;
     setpos(Game.main.gate, p0);
     setpos(key, p1);
 
