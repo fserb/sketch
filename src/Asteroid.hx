@@ -2,7 +2,6 @@
 
 /*
 TODO
-- enemy waves
 - sound
 */
 
@@ -14,9 +13,17 @@ import vault.ugl.PixelArt.C;
 class Asteroid extends Game {
   public var score = 0.0;
   var display: Text;
+
+  public var realtime = 0.0;
+  var totaltime = 0.0;
+  var timeforball = 0.0;
+  var wavecount = 1.0;
+  var timeforenemy = 0.0;
+  var fastforward = false;
+
   static public function main() {
     Game.debug = true;
-    new Asteroid("Super Asteroid", "super hot asteroid");
+    new Asteroid("Super Hot Asteroid", "");
   }
 
   override public function initialize() {
@@ -24,36 +31,105 @@ class Asteroid extends Game {
   }
 
   override public function end() {
+    fastforward = true;
     Game.one("Player").remove();
+    holdback = 2.5;
+    display.remove();
   }
 
   override public function begin() {
     new Player();
     score = 0.0;
-    timeforball = 0.0;
+    timeforball = 2.0;
+    timeforenemy = 0.0;
+    totaltime = 0.0;
+    wavecount = 1.0;
+    fastforward = false;
     display = new Text().color(0xFFFFFF).xy(10, 10).align(TOP_LEFT).size(2);
   }
 
-  override public function final() {
+  public function addShake(?t: Float = 0.2) {
+    shaking = Math.max(shaking, t);
   }
 
-  public var realtime = 0.0;
-  var timeforball = 0.0;
-  override public function update() {
-    realtime = Game.time;
-    if (!(Game.key.up)) {
-      Game.time /= 50.0;
+  var shaking = 0.0;
+  function shake() {
+    shaking = Math.max(0.0, shaking - realtime);
+    if (shaking <= 0) {
+      Game.sprite.x = Game.sprite.y = 0;
+      return;
     }
 
+    Game.sprite.x = -5 + 10*Math.random();
+    Game.sprite.y = -5 + 10*Math.random();
+  }
+
+  var fdisplay: Array<Text>;
+  var count = 0.0;
+  var flip = false;
+  override public function final() {
+    count = 0.0;
+    flip = true;
+    fdisplay = [];
+  }
+
+  override public function finalupdate() {
+    realtime = Game.time;
+    count = Math.max(0.0, count - Game.time);
+
+    if (count <= 0) {
+      for (f in fdisplay) f.remove();
+      fdisplay = [];
+      count += 1.0;
+      flip = !flip;
+      if (flip) {
+        fdisplay.push(
+          new Text().color(0xFFFFFF).xy(240, 240)
+            .size(12).text(""+Std.int(score)));
+      } else {
+        fdisplay.push(new Text().color(0xFFFFFF).xy(240, 120).size(9).text("SUPER"));
+        fdisplay.push(new Text().color(0xFFFFFF).xy(240, 240).size(9).text("HOT"));
+        fdisplay.push(new Text().color(0xFFFFFF).xy(240, 360).size(9).text("ASTEROID"));
+      }
+    }
+    shake();
+  }
+
+  override public function update() {
+    realtime = Game.time;
+    if (!(Game.key.up || Game.key.b1) && !fastforward) {
+      Game.time /= 50.0;
+    }
+    totaltime += Game.time;
+
     timeforball -= Game.time;
-    if (timeforball <= 0 || Game.key.b2_pressed) {
-      timeforball = 10.0;
+    if (timeforball <= 0) {
+      timeforball = 23.0;
       new Ball();
-      new Enemy();
+    }
+
+    timeforenemy -= Game.time;
+    if (timeforenemy <= 0) {
+      for (i in 0...Std.int(wavecount)) {
+        new Enemy();
+      }
+      timeforenemy += 5*Std.int(wavecount);
+      wavecount *= 1.1;
+    }
+
+    var ents = Game.get("Enemy").length + Game.get("Ball").length;
+    if (ents == 0) {
+      timeforenemy = timeforball = 0;
+    }
+
+    if (Game.key.b2_pressed) {
+      Game.one("Player").explode();
     }
 
     score += Game.time;
     display.text(""+Std.int(score));
+
+    shake();
   }
 }
 
@@ -66,7 +142,12 @@ class Player extends Entity {
     sprite.graphics.lineTo(0, 0);
     sprite.graphics.lineTo(24, 12);
     pos.x = pos.y = 240;
-    addHitBox(Rect(0, 0, 24, 24));
+
+    var p = new Array<Vec2>();
+    p.push(new Vec2(0, 0));
+    p.push(new Vec2(24, 12));
+    p.push(new Vec2(0, 24));
+    addHitBox(Polygon(p));
   }
 
   public var reload = 0.0;
@@ -77,7 +158,7 @@ class Player extends Entity {
       var v = new Vec2(200*Game.time, 0);
       v.rotate(angle);
       vel.add(v);
-      vel.length = Math.min(100, vel.length);
+      vel.length = Math.min(200, vel.length);
     }
 
     reload = Math.max(0.0, reload - Game.time);
@@ -92,10 +173,19 @@ class Player extends Entity {
       var b: Bullet = cast e;
       if (b.fromPlayer) continue;
       if (hit(b)) {
-        Game.endGame();
+        explode();
         b.remove();
       }
     }
+  }
+
+  public function explode() {
+    new Particle().color(0xFFFFFF)
+      .count(Rand(70, 20)).xy(pos.x, pos.y)
+      .size(Rand(3, 10)).speed(Rand(5, 25))
+      .duration(Rand(2.0, 0.5));
+    Game.main.addShake(0.5);
+    Game.endGame();
   }
 }
 
@@ -178,6 +268,7 @@ class Ball extends Entity {
           .duration(Rand(1.5, 0.5));
         remove();
         b.remove();
+        Game.main.addShake();
         if (size >= 30) {
           var b1 = new Ball(size/2);
           var b2 = new Ball(size/2);
@@ -191,9 +282,8 @@ class Ball extends Entity {
     }
 
     var p: Player = cast Game.one("Player");
-    if (hit(p)) {
-      p.remove();
-      Game.endGame();
+    if (p != null && hit(p)) {
+      p.explode();
     }
 
     if (pos.x < -size || pos.x > 480+size) pos.x = 480 - pos.x;
@@ -204,7 +294,7 @@ class Ball extends Entity {
 
 class Enemy extends Entity {
   var target: Vec2;
-  var reload = 0.0;
+  var reload = 1.5;
 
   override public function begin() {
     sprite.graphics.beginFill(0x000000);
@@ -221,20 +311,24 @@ class Enemy extends Entity {
       pos.y = 480*Math.random();
     }
 
-    addHitBox(Rect(0, 0, 24, 24));
+    var p = new Array<Vec2>();
+    p.push(new Vec2(0, 0));
+    p.push(new Vec2(24, 12));
+    p.push(new Vec2(0, 24));
+    addHitBox(Polygon(p));
+
     findTarget();
   }
 
   function findTarget() {
     target = new Vec2(480*Math.random(), 480*Math.random());
+    var weight = 1.0 - Math.min(0.75, ticks/5.0);
+    target.mul(weight*(1.0-weight));
     target.add(Game.one("Player").pos);
-    target.mul(0.5);
+    target.mul(1.0/(1.0-weight));
   }
 
   override public function update() {
-    Game.debugsprite.graphics.beginFill(0x00FF00);
-    Game.debugsprite.graphics.drawCircle(target.x, target.y, 5);
-
     var t = target.distance(pos);
 
     if (t.length < 32) {
@@ -253,22 +347,24 @@ class Enemy extends Entity {
       var v = new Vec2(200*Game.time, 0);
       v.rotate(angle);
       vel.add(v);
-      vel.length = Math.min(100, vel.length);
+      vel.length = Math.min(200, vel.length);
     }
 
     var p: Player = Game.one("Player");
-    var pv = p.pos.distance(pos);
+    if (p != null) {
+      var pv = p.pos.distance(pos);
 
-    var pd = Math.abs(Math.PI - Math.abs(Math.abs(pv.angle - angle) - Math.PI));
+      var pd = Math.abs(Math.PI - Math.abs(Math.abs(pv.angle - angle) - Math.PI));
 
-    if (pd >= Math.PI/2 && Math.abs(delta) <= Math.PI/2) {
-      findTarget();
-    }
+      if (pd >= Math.PI/2 && Math.abs(delta) <= Math.PI/2) {
+        findTarget();
+      }
 
-    reload = Math.max(0.0, reload - Game.time);
-    if (pd < Math.PI/12 && reload <= 0.0) {
-      new Bullet(this);
-      reload += 0.5;
+      reload = Math.max(0.0, reload - Game.time);
+      if (pd < Math.PI/12 && reload <= 0.0) {
+        new Bullet(this);
+        reload += 0.5;
+      }
     }
 
     if (pos.x < -8 || pos.x > 480 + 8) pos.x = 480 - pos.x;
@@ -278,15 +374,22 @@ class Enemy extends Entity {
       var b: Bullet = cast e;
       if (!b.fromPlayer) continue;
       if (hit(b)) {
+        Game.main.addShake();
         remove();
         b.remove();
         Game.main.score += 10;
         new Text().xy(pos.x, pos.y).duration(1).move(0, -20).color(0xFFFFFF).text("+10");
         new Particle().color(0x000000)
           .count(Rand(20, 10)).xy(pos.x, pos.y)
-          .size(Rand(3,2)).speed(Rand(5, 15))
+          .size(Rand(3, 3)).speed(Rand(5, 15))
           .duration(Rand(1.0, 0.5));
       }
+    }
+
+    var p: Player = cast Game.one("Player");
+    if (!dead && p != null && hit(p)) {
+      remove();
+      p.explode();
     }
   }
 }
