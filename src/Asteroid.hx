@@ -143,12 +143,7 @@ class Player extends Entity {
   var sndExp: Sound;
   var sndBullet: Sound;
   override public function begin() {
-    sprite.graphics.beginFill(0xFFFFFF);
-    sprite.graphics.moveTo(24, 12);
-    sprite.graphics.lineTo(0, 24);
-    sprite.graphics.lineTo(6, 12);
-    sprite.graphics.lineTo(0, 0);
-    sprite.graphics.lineTo(24, 12);
+    gfx.fill(0xFFFFFF).mt(24, 12).lt(0, 24).lt(6, 12).lt(0, 0).lt(24, 12);
     pos.x = pos.y = 240;
 
     var p = new Array<Vec2>();
@@ -221,14 +216,8 @@ class Bullet extends Entity {
   }
 
   override public function begin() {
-    var g = sprite.graphics;
-    g.beginFill(fromPlayer ? 0xFFFFFF : 0x000000);
-    g.moveTo(0, 3);
-    g.lineTo(10, 0);
-    g.lineTo(14, 0);
-    g.lineTo(14, 6);
-    g.lineTo(10, 6);
-    g.lineTo(0, 3);
+    gfx.fill(fromPlayer ? 0xFFFFFF : 0x000000)
+      .mt(0, 3).lt(10, 0).lt(14, 0).lt(14, 6).lt(10, 6).lt(0, 3);
     sndExp = new Sound(1002).explosion();
   }
   override public function update() {
@@ -262,7 +251,7 @@ class Ball extends Entity {
   }
 
   override public function begin() {
-    art.color(0x0000000).circle(size, size, size);
+    gfx.fill(0x000000).circle(size, size, size);
 
     if (Math.random() < 0.5) {
       pos.x = 480*Math.random();
@@ -320,12 +309,7 @@ class Enemy extends Entity {
   var sndExp: Sound;
 
   override public function begin() {
-    sprite.graphics.beginFill(0x000000);
-    sprite.graphics.moveTo(24, 12);
-    sprite.graphics.lineTo(0, 24);
-    sprite.graphics.lineTo(6, 12);
-    sprite.graphics.lineTo(0, 0);
-    sprite.graphics.lineTo(24, 12);
+    gfx.fill(0x000000).mt(24, 12).lt(0, 24).lt(6, 12).lt(0, 0).lt(24, 12);
     if (Math.random() < 0.5) {
       pos.x = 480*Math.random();
       pos.y = Math.random() < 0.5 ? 0 : 480;
