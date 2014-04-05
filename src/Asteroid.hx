@@ -122,10 +122,6 @@ class Asteroid extends Game {
       timeforenemy = timeforball = 0;
     }
 
-    if (Game.key.b2_pressed) {
-      Game.one("Player").explode();
-    }
-
     score += Game.time;
     display.text(""+Std.int(score));
 
@@ -148,6 +144,8 @@ class Asteroid extends Game {
 }
 
 class Player extends Entity {
+  var sndExp: Sound;
+  var sndBullet: Sound;
   override public function begin() {
     sprite.graphics.beginFill(0xFFFFFF);
     sprite.graphics.moveTo(24, 12);
@@ -162,6 +160,8 @@ class Player extends Entity {
     p.push(new Vec2(24, 12));
     p.push(new Vec2(0, 24));
     addHitBox(Polygon(p));
+    sndExp = new Sound(1032).explosion();
+    sndBullet = new Sound(1008).laser();
   }
 
   public var reload = 0.0;
@@ -178,6 +178,7 @@ class Player extends Entity {
     reload = Math.max(0.0, reload - Game.time);
     if (Game.key.b1 && reload <= 0.0) {
       new Bullet(this);
+      sndBullet.play();
       reload += 0.35;
     }
     Game.main.wrap(pos, 12);
@@ -198,6 +199,7 @@ class Player extends Entity {
       .size(Rand(3, 10)).speed(Rand(5, 25))
       .duration(Rand(2.0, 0.5));
     Game.main.addShake(0.5);
+    sndExp.play();
     Game.endGame();
   }
 }
@@ -205,12 +207,14 @@ class Player extends Entity {
 class Bullet extends Entity {
   public var fromPlayer: Bool;
   var timer: Float;
+  var sndExp: Sound;
+
   override public function new(src: Entity) {
     fromPlayer = (src == Game.one("Player"));
     super();
     angle = src.angle;
-    pos.x = src.pos.x + 12*Math.cos(angle);
-    pos.y = src.pos.y + 12*Math.sin(angle);
+    pos.x = src.pos.x + 10*Math.cos(angle);
+    pos.y = src.pos.y + 10*Math.sin(angle);
     vel.length = 300;
     vel.angle = angle;
     timer = 2;
@@ -224,6 +228,7 @@ class Bullet extends Entity {
     g.lineTo(10, 0);
     g.lineTo(10, 4);
     g.lineTo(0, 2);
+    sndExp = new Sound(1002).explosion();
   }
   override public function update() {
     timer -= Game.time;
@@ -238,6 +243,7 @@ class Bullet extends Entity {
       if (b == this) continue;
       if (b.fromPlayer == fromPlayer) continue;
       if (hit(b)) {
+        sndExp.play();
         remove();
         b.remove();
       }
@@ -247,9 +253,11 @@ class Bullet extends Entity {
 
 class Ball extends Entity {
   var size: Float;
+  var sndExp: Sound;
   override public function new(s: Float = -1) {
     size = s > 0 ? s : 30 + 20*Math.random();
     super();
+    sndExp = new Sound(1010).explosion();
   }
 
   override public function begin() {
@@ -282,6 +290,7 @@ class Ball extends Entity {
         remove();
         b.remove();
         Game.main.addShake();
+        sndExp.play();
         if (size >= 30) {
           var b1 = new Ball(size/2);
           var b2 = new Ball(size/2);
@@ -307,6 +316,7 @@ class Ball extends Entity {
 class Enemy extends Entity {
   var target: Vec2;
   var reload = 1.5;
+  var sndExp: Sound;
 
   override public function begin() {
     sprite.graphics.beginFill(0x000000);
@@ -331,9 +341,11 @@ class Enemy extends Entity {
 
     findTarget();
     angle = target.distance(pos).angle;
+    sndExp = new Sound(1005).explosion();
   }
 
   function findTarget() {
+    if (Game.one("Player") == null) return;
     target = new Vec2(480*Math.random(), 480*Math.random());
     var weight = 1.0 - Math.min(0.75, ticks/5.0);
     target.mul(weight*(1.0-weight));
@@ -376,6 +388,7 @@ class Enemy extends Entity {
       reload = Math.max(0.0, reload - Game.time);
       if (pd < Math.PI/12 && reload <= 0.0) {
         new Bullet(this);
+        new Sound(1006).laser().play();
         reload += 0.5;
       }
     }
@@ -390,6 +403,7 @@ class Enemy extends Entity {
         remove();
         b.remove();
         Game.main.score += 10;
+        sndExp.play();
         new Text().xy(pos.x, pos.y).duration(1).move(0, -20).color(0xFFFFFF).text("+10");
         new Particle().color(0x000000)
           .count(Rand(40, 20)).xy(pos.x, pos.y)
@@ -402,6 +416,7 @@ class Enemy extends Entity {
     if (!dead && p != null && hit(p)) {
       remove();
       p.explode();
+      sndExp.play();
       new Particle().color(0x000000)
         .count(Rand(40, 20)).xy(pos.x, pos.y)
         .size(Rand(3, 10)).speed(Rand(5, 25))
