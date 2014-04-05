@@ -17,7 +17,7 @@ class Asteroid extends Game {
   var fastforward = false;
 
   static public function main() {
-    Game.debug = true;
+    // Game.debug = true;
     new Asteroid("Super Hot Asteroid", "");
   }
 
