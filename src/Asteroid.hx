@@ -1,10 +1,5 @@
 //@ ugl.bgcolor = 0xbf1b25
 
-/*
-TODO
-- sound
-*/
-
 import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
@@ -347,10 +342,11 @@ class Enemy extends Entity {
   function findTarget() {
     if (Game.one("Player") == null) return;
     target = new Vec2(480*Math.random(), 480*Math.random());
-    var weight = 1.0 - Math.min(0.75, ticks/5.0);
-    target.mul(weight*(1.0-weight));
-    target.add(Game.one("Player").pos);
-    target.mul(1.0/(1.0-weight));
+    var weight = 1.0 - Math.min(0.75, ticks/10.0);
+    target.mul(weight);
+    var p:Vec2 = Game.one("Player").pos.copy();
+    p.mul(1.0-weight);
+    target.add(p);
   }
 
   override public function update() {
