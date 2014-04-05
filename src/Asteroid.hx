@@ -27,7 +27,7 @@ class Asteroid extends Game {
   }
 
   override public function initialize() {
-    Game.orderGroups(["Particle", "Ball", "Enemy", "Player", "Bullet", "Text"]);
+    Game.orderGroups(["Ball", "Enemy", "Particle", "Player", "Bullet", "Text"]);
   }
 
   override public function end() {
@@ -48,7 +48,7 @@ class Asteroid extends Game {
     display = new Text().color(0xFFFFFF).xy(10, 10).align(TOP_LEFT).size(2);
   }
 
-  public function addShake(?t: Float = 0.2) {
+  public function addShake(?t: Float = 0.4) {
     shaking = Math.max(shaking, t);
   }
 
@@ -131,6 +131,20 @@ class Asteroid extends Game {
 
     shake();
   }
+
+  inline public function wrap(p: Vec2, s: Float) {
+    if (p.x < -s/2) {
+      p.x = 480 + s/2 - 1;
+    } else if (p.x > 480 + s/2) {
+      p.x = 0 - s/2 + 1;
+    }
+
+    if (p.y < -s/2) {
+      p.y = 480 + s/2 - 1;
+    } else if (p.y > 480 + s/2) {
+      p.y = 0 - s/2 + 1;
+    }
+  }
 }
 
 class Player extends Entity {
@@ -164,10 +178,9 @@ class Player extends Entity {
     reload = Math.max(0.0, reload - Game.time);
     if (Game.key.b1 && reload <= 0.0) {
       new Bullet(this);
-      reload += 0.3;
+      reload += 0.35;
     }
-    if (pos.x < -8 || pos.x > 480 + 8) pos.x = 480 - pos.x;
-    if (pos.y < -8 || pos.y > 480 + 8) pos.y = 480 - pos.y;
+    Game.main.wrap(pos, 12);
 
     for (e in Game.get("Bullet")) {
       var b: Bullet = cast e;
@@ -217,8 +230,8 @@ class Bullet extends Entity {
     if (timer < 0) {
       remove();
     }
-    if (pos.x < 0 || pos.x > 480) pos.x = 480 - pos.x;
-    if (pos.y < 0 || pos.y > 480) pos.y = 480 - pos.y;
+
+    Game.main.wrap(pos, 0);
 
     for (e in Game.get("Bullet")) {
       var b: Bullet = cast e;
@@ -286,8 +299,7 @@ class Ball extends Entity {
       p.explode();
     }
 
-    if (pos.x < -size || pos.x > 480+size) pos.x = 480 - pos.x;
-    if (pos.y < -size || pos.y > 480+size) pos.y = 480 - pos.y;
+    Game.main.wrap(pos, size*2);
   }
 }
 
@@ -367,8 +379,7 @@ class Enemy extends Entity {
       }
     }
 
-    if (pos.x < -8 || pos.x > 480 + 8) pos.x = 480 - pos.x;
-    if (pos.y < -8 || pos.y > 480 + 8) pos.y = 480 - pos.y;
+    Game.main.wrap(pos, 12);
 
     for (e in Game.get("Bullet")) {
       var b: Bullet = cast e;
