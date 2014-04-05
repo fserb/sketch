@@ -55,8 +55,9 @@ class Asteroid extends Game {
       return;
     }
 
-    Game.sprite.x = -5 + 10*Math.random();
-    Game.sprite.y = -5 + 10*Math.random();
+    var mag = 5 + 10*shaking;
+    Game.sprite.x = -mag + 2*mag*Math.random();
+    Game.sprite.y = -mag + 2*mag*Math.random();
   }
 
   var fdisplay: Array<Text>;
@@ -173,6 +174,9 @@ class Player extends Entity {
     reload = Math.max(0.0, reload - Game.time);
     if (Game.key.b1 && reload <= 0.0) {
       new Bullet(this);
+      var v = new Vec2(-35, 0);
+      v.rotate(angle);
+      vel.add(v);
       sndBullet.play();
       reload += 0.35;
     }
@@ -213,16 +217,18 @@ class Bullet extends Entity {
     vel.length = 300;
     vel.angle = angle;
     timer = 2;
-    addHitBox(Rect(0, 0, 10, 4));
+    addHitBox(Rect(0, 0, 14, 6));
   }
 
   override public function begin() {
     var g = sprite.graphics;
     g.beginFill(fromPlayer ? 0xFFFFFF : 0x000000);
-    g.moveTo(0, 2);
+    g.moveTo(0, 3);
     g.lineTo(10, 0);
-    g.lineTo(10, 4);
-    g.lineTo(0, 2);
+    g.lineTo(14, 0);
+    g.lineTo(14, 6);
+    g.lineTo(10, 6);
+    g.lineTo(0, 3);
     sndExp = new Sound(1002).explosion();
   }
   override public function update() {
@@ -384,6 +390,9 @@ class Enemy extends Entity {
       reload = Math.max(0.0, reload - Game.time);
       if (pd < Math.PI/12 && reload <= 0.0) {
         new Bullet(this);
+        var v = new Vec2(-35, 0);
+        v.rotate(angle);
+        vel.add(v);
         new Sound(1006).laser().play();
         reload += 0.5;
       }
