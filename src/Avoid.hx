@@ -84,14 +84,13 @@ class Enemy extends Entity {
 
     var player: Player = Game.main.player;
     if (player == null) return;
-    var x = player.pos.copy();
-    x.sub(this.pos);
+    var x = player.pos.distance(this.pos);
     x.normalize();
     x.mul(Math.sqrt(Game.totalTime * .00002) * size * Math.min(1.0, tv) * player.size * 7);
     vel.add(x);
     vel.mul(0.95);
 
-    var ads = Std.int((size + player.size) * 2 / (pos.distance(player.pos) - size - player.size + .1));
+    var ads = Std.int((size + player.size) * 2 / (pos.distance(player.pos).length - size - player.size + .1));
     if (ads > 0) {
       tads += ads;
     } else {
@@ -104,7 +103,7 @@ class Enemy extends Entity {
       remove();
     }
 
-    var d = pos.distance(player.pos);
+    var d = pos.distance(player.pos).length;
     if (d < size + player.size) {
       adsc();
       player.chit(size);
@@ -120,7 +119,7 @@ class Enemy extends Entity {
       var e: Enemy = cast en;
       if (e == this) continue;
       if (e.dead) continue;
-      if (pos.distance(e.pos) > size + e.size) continue;
+      if (pos.distance(e.pos).length > size + e.size) continue;
 
       if (size > e.size) {
         new Particle().color(0xe11c57).xy(e.pos.x, e.pos.y)

@@ -154,7 +154,7 @@ class Player extends Entity {
     var mindist = 1e99;
     closest = null;
     for (p in Game.get("Planet")) {
-      var d = pos.distance(p.pos);
+      var d = pos.distance(p.pos).length;
       if (d < mindist) {
         mindist = d;
         closest = cast p;
