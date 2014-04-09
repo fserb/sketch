@@ -226,11 +226,9 @@ class Tomato extends Entity {
 
 class Coin extends Entity {
   var value: Int;
-  override public function new(dist: Float) {
-    super();
-    value = Math.round(Game.main.combo + (1.0 - dist)*9);
-  }
   override public function begin() {
+    var dist: Float = args[0];
+    value = Math.round(Game.main.combo + (1.0 - dist)*9);
     pos.x = Math.random()*480;
     pos.y = 500;
 

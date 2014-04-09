@@ -203,9 +203,13 @@ class Bullet extends Entity {
   var timer: Float;
   var sndExp: Sound;
 
-  override public function new(src: Entity) {
+  override public function begin() {
+    var src: Entity = args[0];
     fromPlayer = (src == Game.one("Player"));
-    super();
+
+    gfx.fill(fromPlayer ? 0xFFFFFF : 0x000000)
+      .mt(0, 3).lt(10, 0).lt(14, 0).lt(14, 6).lt(10, 6).lt(0, 3);
+    sndExp = new Sound(1002).explosion();
     angle = src.angle;
     pos.x = src.pos.x + 10*Math.cos(angle);
     pos.y = src.pos.y + 10*Math.sin(angle);
@@ -215,11 +219,6 @@ class Bullet extends Entity {
     addHitBox(Rect(0, 0, 14, 6));
   }
 
-  override public function begin() {
-    gfx.fill(fromPlayer ? 0xFFFFFF : 0x000000)
-      .mt(0, 3).lt(10, 0).lt(14, 0).lt(14, 6).lt(10, 6).lt(0, 3);
-    sndExp = new Sound(1002).explosion();
-  }
   override public function update() {
     timer -= Game.time;
     if (timer < 0) {
@@ -244,13 +243,10 @@ class Bullet extends Entity {
 class Ball extends Entity {
   var size: Float;
   var sndExp: Sound;
-  override public function new(s: Float = -1) {
-    size = s > 0 ? s : 30 + 20*Math.random();
-    super();
-    sndExp = new Sound(1010).explosion();
-  }
-
   override public function begin() {
+    var s = args[0];
+    size = s > 0 ? s : 30 + 20*Math.random();
+
     gfx.fill(0x000000).circle(size, size, size);
 
     if (Math.random() < 0.5) {
@@ -264,6 +260,7 @@ class Ball extends Entity {
     vel.length = 100;
     vel.angle = 2*Math.PI*Math.random();
     addHitBox(Circle(size, size, size));
+    sndExp = new Sound(1010).explosion();
   }
 
   override public function update() {
