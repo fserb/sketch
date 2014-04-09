@@ -21,10 +21,6 @@ class Asteroid extends Game {
     new Asteroid("Super Hot Asteroid", "");
   }
 
-  override public function initialize() {
-    Game.orderGroups(["Ball", "Enemy", "Particle", "Player", "Bullet", "Text"]);
-  }
-
   override public function end() {
     fastforward = true;
     Game.one("Player").remove();
@@ -140,6 +136,8 @@ class Asteroid extends Game {
 }
 
 class Player extends Entity {
+  static var layer = 15;
+
   var sndExp: Sound;
   var sndBullet: Sound;
   override public function begin() {
@@ -199,6 +197,7 @@ class Player extends Entity {
 }
 
 class Bullet extends Entity {
+  static var layer = 20;
   public var fromPlayer: Bool;
   var timer: Float;
   var sndExp: Sound;
@@ -241,6 +240,7 @@ class Bullet extends Entity {
 }
 
 class Ball extends Entity {
+  static var layer = 2;
   var size: Float;
   var sndExp: Sound;
   override public function begin() {
@@ -301,6 +301,7 @@ class Ball extends Entity {
 
 
 class Enemy extends Entity {
+  static var layer = 3;
   var target: Vec2;
   var reload = 1.5;
   var sndExp: Sound;

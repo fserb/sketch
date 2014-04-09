@@ -16,10 +16,6 @@ class Amaze extends Game {
   public var gate: Gate;
   public var level: Int = 0;
 
-  override public function initialize() {
-    Game.orderGroups(["Maze", "Key", "Gate", "Bot", "Player", "Final", "Transition", "Text"]);
-  }
-
   override public function end() {
     player.remove();
     player = null;
@@ -53,6 +49,7 @@ class Amaze extends Game {
 }
 
 class Transition extends Entity {
+  static var layer = 20;
   var t = 0.0;
   var txt: Text = null;
   var f = 0.0;
@@ -92,6 +89,7 @@ class Transition extends Entity {
 }
 
 class Maze extends Entity {
+  static var layer = 1;
   var map: Array<Array<Int>>;
 
   override public function begin() {
@@ -218,6 +216,8 @@ class Maze extends Entity {
 }
 
 class Player extends Entity {
+  static var layer = 4;
+
   public var mx: Int;
   public var my: Int;
   public var tx: Int;
@@ -320,6 +320,8 @@ class Player extends Entity {
 }
 
 class Bot extends Entity {
+  static var layer = 3;
+
   var mx: Int;
   var my: Int;
   var tx: Int;
@@ -455,6 +457,8 @@ class Bot extends Entity {
 }
 
 class Gate extends Entity {
+  static var layer = 2;
+
   var unlocked = false;
   var o = 1.0;
   override public function begin() {
@@ -480,6 +484,7 @@ class Gate extends Entity {
 }
 
 class Key extends Entity {
+  static var layer = 2;
   override public function begin() {
     art.color(0x444444).rect(0, 0, 10, 10);
     addHitBox(Rect(0, 0, 10, 10));
@@ -495,6 +500,8 @@ class Key extends Entity {
 }
 
 class Final extends Entity {
+  static var layer = 10;
+
   var t: Text;
   var step: Float;
   override public function begin() {
