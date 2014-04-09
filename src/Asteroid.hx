@@ -328,8 +328,8 @@ class Enemy extends Entity {
   }
 
   function findTarget() {
-    if (Game.one("Player") == null) return;
     target = new Vec2(480*Math.random(), 480*Math.random());
+    if (Game.one("Player") == null) return;
     var weight = 1.0 - Math.min(0.75, ticks/10.0);
     target.mul(weight);
     var p:Vec2 = Game.one("Player").pos.copy();
@@ -344,30 +344,49 @@ class Enemy extends Entity {
       findTarget();
     }
 
-    var delta = t.angle - angle;
-    delta = Math.PI - Math.abs(Math.abs(delta) - Math.PI);
+    var p: Player = Game.one("Player");
 
-    var inc = 1.5*Math.PI*Game.time;
+    if (t.anglebetween(vel) <= Math.PI/6 && vel.length >= 100 && p != null) {
+      var pv = p.pos.distance(pos);
 
-    if (delta >= inc) angle -= inc;
-    else if (delta <= -inc) angle += inc;
+      var delta = EMath.angledistance(angle, pv.angle);
+      var inc = 1*Math.PI*Game.time;
+      if (delta >= inc) angle -= inc;
+      else if (delta <= -inc) angle += inc;
+    } else {
+      // adjust direction
+      var dir = new Vec2(1, 0);
+      if (vel.length == 0) {
+        dir.rotate(t.angle);
+      } else {
+        if (vel.dot(t) > 0) {
+          dir = vel.copy();
+          var nn = t.copy();
+          nn.normalize();
+          dir.reflect(nn);
+        } else {
+          dir = vel.copy();
+          dir.mul(-1);
+        }
+      }
 
-    if (Math.abs(delta) < Math.PI/6) {
-      var v = new Vec2(200*Game.time, 0);
-      v.rotate(angle);
-      vel.add(v);
-      vel.length = Math.min(200, vel.length);
+      var delta = EMath.angledistance(angle, dir.angle);
+      var inc = 1.5*Math.PI*Game.time;
+      if (delta >= inc) angle -= inc;
+      else if (delta <= -inc) angle += inc;
+
+      if (Math.abs(delta) < Math.PI/6 || vel.length < 20) {
+        var v = new Vec2(200*Game.time, 0);
+        v.rotate(angle);
+        vel.add(v);
+        vel.length = Math.min(200, vel.length);
+      }
     }
 
-    var p: Player = Game.one("Player");
     if (p != null) {
       var pv = p.pos.distance(pos);
 
       var pd = Math.abs(Math.PI - Math.abs(Math.abs(pv.angle - angle) - Math.PI));
-
-      if (pd >= Math.PI/2 && Math.abs(delta) <= Math.PI/2) {
-        findTarget();
-      }
 
       reload = Math.max(0.0, reload - Game.time);
       if (pd < Math.PI/12 && reload <= 0.0) {
@@ -376,7 +395,7 @@ class Enemy extends Entity {
         v.rotate(angle);
         vel.add(v);
         new Sound(1006).laser().play();
-        reload += 0.5;
+        reload += 0.75;
       }
     }
 
