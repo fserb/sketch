@@ -111,7 +111,7 @@ class Note extends Entity {
   public var good = false;
   var snd: Sound;
   override public function begin() {
-    art.size(4, 5, 5).obj([C.orange], NOTE);
+    art.cache(0).size(4, 5, 5).obj([C.orange], NOTE);
     pos.x = 500;
     pos.y = 80;
     addHitBox(Rect(0, 0, 20, 20));
@@ -121,7 +121,7 @@ class Note extends Entity {
   override public function update() {
     if (hit(Game.main.holder)) {
       if (front) {
-        art.size(4, 5, 5).obj([C.red], NOTE);
+        art.cache(1).size(4, 5, 5).obj([C.red], NOTE);
       }
 
       onhit = true;

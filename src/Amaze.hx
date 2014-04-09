@@ -306,18 +306,15 @@ class Player extends Entity {
     if (leaving >= 0) {
       leaving = Math.max(0, leaving - 2*Game.time);
       var s = 8*leaving;
-      art.color(0xFFFFFF).circle(s, s, s)
+      art.cache(Std.int(2 + s)).color(0xFFFFFF).circle(s, s, s)
          .color(0x3dbf86).rect(0, s+1, 2*s+1, s/2+1);
       if (leaving == 0) {
         Game.main.next();
       }
     } else {
       cooldown = Math.max(0, cooldown - Game.time/3.0);
-      // var s = Math.round(5 + 3*(1.0-cooldown));
-      var s = 8;
-
-      art.color(0xFFFFFF).circle(s, s, s)
-         .color(0x3dbf86).rect(0, s+1, 2*s+1, cooldown <= 0 ? s/2+1 : s);
+      art.cache(cooldown <= 0 ? 0 : 1).color(0xFFFFFF).circle(8, 8, 8)
+         .color(0x3dbf86).rect(0, 8+1, 2*8+1, cooldown <= 0 ? 8/2+1 : 8);
     }
   }
 }
@@ -444,9 +441,9 @@ class Bot extends Entity {
 
 
     if (evil) {
-      art.size(3).color(0xc24079).circle(7/4,7/4,7/4);
+      art.cache(0).size(3).color(0xc24079).circle(7/4,7/4,7/4);
     } else {
-      art.size(3).color(0xc24079).lcircle(7/4,7/4,7/4);
+      art.cache(1).size(3).color(0xc24079).lcircle(7/4,7/4,7/4);
     }
 
     if (Game.main.player != null &&
@@ -461,7 +458,7 @@ class Gate extends Entity {
   var unlocked = false;
   var o = 1.0;
   override public function begin() {
-    art.color(0x444444).rect(0, 0, 20, 20).color(0x3dbf86).rect(5, 5, 10, 10);
+    art.clear().color(0x444444).rect(0, 0, 20, 20).color(0x3dbf86).rect(5, 5, 10, 10);
     addHitBox(Rect(0, 0, 20, 20));
   }
 
@@ -472,7 +469,7 @@ class Gate extends Entity {
   override public function update() {
     if (unlocked && o > 0) {
       o = Math.max(0.0, o - 4*Game.time);
-      art.color(0x444444).rect(0, 0, 20, 20).color(0x3dbf86).rect(10 - 5*o, 10 - 5*o, 10*o, 10*o);
+      art.clear().color(0x444444).rect(0, 0, 20, 20).color(0x3dbf86).rect(10 - 5*o, 10 - 5*o, 10*o, 10*o);
     }
     if (unlocked && Game.main.player != null &&
         Game.main.player.leaving <= 0 && hit(Game.main.player)) {
