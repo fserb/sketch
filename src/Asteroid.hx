@@ -285,6 +285,7 @@ class Enemy extends Entity {
   var target: Vec2;
   var reload = 1.5;
   var sndExp: Sound;
+  var sndBullet: Sound;
 
   override public function begin() {
     gfx.fill(0x000000).mt(24, 12).lt(0, 24).lt(6, 12).lt(0, 0).lt(24, 12);
@@ -305,6 +306,7 @@ class Enemy extends Entity {
     findTarget();
     angle = target.distance(pos).angle;
     sndExp = new Sound(1005).explosion();
+    sndBullet = new Sound(1006).laser();
   }
 
   function findTarget() {
@@ -374,7 +376,7 @@ class Enemy extends Entity {
         var v = new Vec2(-35, 0);
         v.rotate(angle);
         vel.add(v);
-        new Sound(1006).laser().play();
+        sndBullet.play();
         reload += 0.75;
       }
     }
