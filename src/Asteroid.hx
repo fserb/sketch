@@ -39,23 +39,6 @@ class Asteroid extends Game {
     display = new Text().color(0xFFFFFF).xy(10, 10).align(TOP_LEFT).size(2);
   }
 
-  public function addShake(?t: Float = 0.4) {
-    shaking = Math.max(shaking, t);
-  }
-
-  var shaking = 0.0;
-  function shake() {
-    shaking = Math.max(0.0, shaking - realtime);
-    if (shaking <= 0) {
-      Game.sprite.x = Game.sprite.y = 0;
-      return;
-    }
-
-    var mag = 5 + 10*shaking;
-    Game.sprite.x = -mag + 2*mag*Math.random();
-    Game.sprite.y = -mag + 2*mag*Math.random();
-  }
-
   var fdisplay: Array<Text>;
   var count = 0.0;
   var flip = false;
@@ -84,7 +67,6 @@ class Asteroid extends Game {
         fdisplay.push(new Text().color(0xFFFFFF).xy(240, 360).size(9).text("ASTEROID"));
       }
     }
-    shake();
   }
 
   override public function update() {
@@ -116,8 +98,6 @@ class Asteroid extends Game {
 
     score += Game.time;
     display.text(""+Std.int(score));
-
-    shake();
   }
 
   inline public function wrap(p: Vec2, s: Float) {
@@ -190,7 +170,7 @@ class Player extends Entity {
       .count(Rand(70, 20)).xy(pos.x, pos.y)
       .size(Rand(3, 10)).speed(Rand(5, 25))
       .duration(Rand(2.0, 0.5));
-    Game.main.addShake(0.5);
+    Game.shake(0.5);
     sndExp.play();
     Game.endGame();
   }
@@ -276,7 +256,7 @@ class Ball extends Entity {
           .duration(Rand(1.5, 0.5));
         remove();
         b.remove();
-        Game.main.addShake();
+        Game.shake();
         sndExp.play();
         if (size >= 30) {
           var b1 = new Ball(size/2);
@@ -405,7 +385,7 @@ class Enemy extends Entity {
       var b: Bullet = cast e;
       if (!b.fromPlayer) continue;
       if (hit(b)) {
-        Game.main.addShake();
+        Game.shake();
         remove();
         b.remove();
         Game.main.score += 10;
