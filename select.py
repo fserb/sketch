@@ -12,15 +12,21 @@ def main(args):
   params = {
     "name": prj,
     "lname" : prj.lower(),
-    "bgcolor": 0x000000 }
+    "bgcolor": 0x000000,
+    "haxelib": [] }
 
   for l in file("src/" + prj + ".hx"):
     ls = l.strip()
     if not ls: continue
     if not ls.startswith("//@"): break
     p = re.findall(r"//@ ugl\.(\S+) = (\S+)$", ls)[0]
-    params[p[0]] = p[1]
+    if (p[0] in ['haxelib']):
+      params[p[0]].append(p[1])
+    else:
+      params[p[0]] = p[1]
 
+  params['haxelib'] = '\n'.join('<haxelib name="%s" />' % s
+                                for s in params['haxelib'])
   data = PROJECT % params
   with file("project.xml", "wt") as f:
     f.write(data)
@@ -43,6 +49,7 @@ PROJECT = """
 
   <haxelib name="vault" />
   <haxelib name="openfl" />
+  %(haxelib)s
 </project>
 """
 
