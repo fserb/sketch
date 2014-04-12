@@ -39,7 +39,7 @@ PROJECT = """
 
   <app main="%(name)s" path="bin" file="%(name)s" swf-version="11.8" />
 
-  <window fps="30" background="%(bgcolor)s" resizable="false" require-shaders="true" vsync="false" antialiasing="0" />
+  <window fps="60" background="%(bgcolor)s" resizable="false" require-shaders="true" vsync="false" antialiasing="0" />
   <window width="480" height="480" unless="mobile" />
   <window orientation="landscape" fullscreen="true" if="mobile" />
 
