@@ -1,11 +1,13 @@
 //@ ugl.bgcolor = 0x000000
 
 /*
+- new layout
 - randomly generated enemies
 - pick a pattern
+- level change
+- poop/enemy colision
 - score
 - lives?
-- enemies poop on you
 */
 
 import vault.ugl.*;
@@ -101,7 +103,8 @@ enum StrategySpawn {
 typedef Strategy = {
   spawn: StrategySpawn,
   xmove: Int -> Float -> Float,
-  ymove: Float -> Float
+  ymove: Float -> Float,
+  shooting: Float,
 };
 
 class Wave extends Entity {
@@ -112,41 +115,49 @@ class Wave extends Entity {
       spawn: Horizontal(5, 3, 40),
       xmove: function(y, t) { return 200; },
       ymove: function(t) { return 0; },
+      shooting: 0.1,
     },
     { // megamania 2
       spawn: Vertical(3, 6, 102),
       xmove: function(y, t) { if (t == 0) return 180*y; return (Std.int(t)%4 <= 1) ? 200 : -200; },
-      ymove: function(t) { return (Std.int(t)%2 == 0) ? 50 : 0; }
+      ymove: function(t) { return (Std.int(t)%2 == 0) ? 50 : 0; },
+      shooting: 0.1,
     },
     { // megamania 3
       spawn: Horizontal(5, 3, 40),
       xmove: function(y, t) { return 200; },
       ymove: function(t) { return 15*Math.sin(2*Math.PI*t/30.0); },
+      shooting: 0.3,
     },
     { // megamania 4
       spawn: Vertical(3, 6, 102),
       xmove: function(y, t) { if (t == 0) return 130*y; return ((y+Std.int(t))%4 <= 1) ? 200 : -200; },
-      ymove: function(t) { return (Std.int(t)%3 == 0) ? 50 : 0; }
+      ymove: function(t) { return (Std.int(t)%3 == 0) ? 50 : 0; },
+      shooting: 0.3,
     },
     { // megamania 5
       spawn: Horizontal(5, 3, 40),
       xmove: function(y, t) { return 200; },
       ymove: function(t) { return 80*Math.sin(2*Math.PI*t/5.0); },
+      shooting: 0.5,
     },
     { // megamania 6
       spawn: Vertical(3, 6, 102),
       xmove: function(y, t) { if (t == 0) return 240; var s = Std.int(1.5*t)%6; return (s == 0 || s == 4) ? 0 : (s == 1 || s == 3) ? -300 : 300; },
-      ymove: function(t) { return (Std.int(t)%3 != 0) ? 50 : 0; }
+      ymove: function(t) { return (Std.int(t)%3 != 0) ? 50 : 0; },
+      shooting: 0.5,
     },
     { // megamania 7
       spawn: Horizontal(5, 3, 40),
       xmove: function(y, t) { return 200; },
       ymove: function(t) { return 280*Math.sin(2*Math.PI*t/1.5); },
+      shooting: 0.6,
     },
     { // megamania 8
       spawn: Vertical(3, 6, 102),
       xmove: function(y, t) { if (t == 0) return y*3211; return 0; },
-      ymove: function(t) { return 250; }
+      ymove: function(t) { return 250; },
+      shooting: 0.0,
     },
   ];
   var strategy: Strategy;
@@ -163,7 +174,7 @@ class Wave extends Entity {
         var dx = (480 + 30)/width;
         for (y in 0...height) {
           for (x in 0...width) {
-            var e = new Enemy(x, y, new Vec2(x*dx + (y%2)*(dx/2) - 496, 50.0 + y*dy));
+            var e = new Enemy(x, y, new Vec2(x*dx + (y%2)*(dx/2) - 496, 50.0 + y*dy), strategy.shooting);
             all.push(e);
           }
         }
@@ -171,7 +182,7 @@ class Wave extends Entity {
       var dy = (400 + 30)/height;
         for (y in 0...height) {
           for (x in 0...width) {
-            var e = new Enemy(x, y, new Vec2(x*dx + strategy.xmove(y, 0), -dy*y));
+            var e = new Enemy(x, y, new Vec2(x*dx + strategy.xmove(y, 0), -dy*y), strategy.shooting);
             all.push(e);
           }
         }
@@ -194,6 +205,7 @@ class Wave extends Entity {
 class Enemy extends Entity {
   public var wx: Int;
   public var wy: Int;
+  public var shooting: Float;
   override public function begin() {
     art.size(3,11,7).obj([0xc659b3], "...00000...00000000000...........000.000.000...........00000000000...00000...");
     // art.size(3,11,7).obj([0xd2d240], "00000000000.000.000.0000000000000...........0000000000000.000.000.00000000000");
@@ -201,14 +213,34 @@ class Enemy extends Entity {
     wy = args[1];
     pos.x = args[2].x;
     pos.y = args[2].y;
+    shooting = args[3];
     addHitBox(Rect(0, 0, 33, 21));
   }
 
   override public function update() {
+    if (pos.y > 0 && Math.random() < shooting*Game.time*0.3) {
+      new EnemyBullet(pos.x + 6, pos.y + 21);
+    }
+
     if (Game.main.player.bullet != null && hit(Game.main.player.bullet)) {
       remove();
       Game.main.player.bullet.remove();
       Game.main.player.bullet = null;
+    }
+  }
+}
+
+class EnemyBullet extends Entity {
+  override public function begin() {
+    art.size(3).color(0x990000).rect(0, 0, 2, 6);
+    pos.x = args[0];
+    pos.y = args[1];
+    addHitBox(Rect(0, 0, 6, 18));
+  }
+  override public function update() {
+    pos.y += 500*Game.time;
+    if (pos.y >= 420) {
+      remove();
     }
   }
 }
