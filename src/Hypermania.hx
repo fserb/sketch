@@ -60,6 +60,7 @@ class Hypermania extends Game {
   }
 
   override public function final() {
+    new Score(score, true);
     var s1 = new Text().size(4).color(0xFFFFFF).xy(240, 100).text("game over");
 
     var s2 = new Text().size(6).color(0xFFFFFF).xy(240, 200).text("" + Std.int(score));
@@ -102,13 +103,14 @@ class Hypermania extends Game {
       player.explode();
     }
 
-    if (Game.key.b2_pressed) {
+    if (Game.debug && Game.key.b2_pressed) {
       wave.remove();
       for (e in Game.get("Enemy")) {
         e.remove();
       }
       nextLevel();
     }
+    new Score(score, false);
   }
 }
 

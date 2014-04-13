@@ -43,6 +43,7 @@ class Asteroid extends Game {
   var count = 0.0;
   var flip = false;
   override public function final() {
+    new Score(score, true);
     count = 0.0;
     flip = true;
     fdisplay = [];
@@ -98,6 +99,7 @@ class Asteroid extends Game {
 
     score += Game.time;
     display.text(""+Std.int(score));
+    new Score(score, false);
   }
 
   inline public function wrap(p: Vec2, s: Float) {
