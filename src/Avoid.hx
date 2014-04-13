@@ -20,7 +20,7 @@ class Avoid extends Game {
   override public function begin() {
     player = new Player();
     Game.orderGroups(["Enemy", "Player", "Particle", "Text"]);
-    spawner = new Timer().every(1.5).run(function() { new Enemy(); });
+    spawner = new Timer().every(1.5).run(function() { new Enemy(); return true; });
   }
 
   override public function end() {
