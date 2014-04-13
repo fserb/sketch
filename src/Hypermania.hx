@@ -1,9 +1,10 @@
 //@ ugl.bgcolor = 0x04a2fc
-//0x3b4964
 
 /*
 - x/ytime patterns
 - make it harder to shoot enemies
+- enemies shoot when you are under them
+- ticker
 */
 
 import vault.ugl.*;
@@ -58,6 +59,17 @@ class Hypermania extends Game {
   }
 
   override public function final() {
+    var s1 = new Text().size(4).color(0xFFFFFF).xy(240, 100).text("game over");
+
+    var s2 = new Text().size(6).color(0xFFFFFF).xy(240, 200).text("" + Std.int(score));
+
+    var wc = waveCount - 1;
+
+    var str = wc +" waves completed";
+    if (wc == 0) str = "you'll get better";
+    else if (wc == 1) str = "one wave done";
+
+    var s3 = new Text().size(3).color(0xFFFFFF).xy(240, 300).text(str);
   }
 
   function nextLevel() {
@@ -79,7 +91,11 @@ class Hypermania extends Game {
     energy -= Game.time*100.0/75.0;
 
     if (Game.key.b2_pressed) {
+      return player.explode();
       wave.remove();
+      for (e in Game.get("Enemy")) {
+        e.remove();
+      }
       nextLevel();
     }
   }
@@ -150,7 +166,7 @@ class Bullet extends Entity {
   override public function update() {
     if (ticks < 0.07) {
       art.clear().size(3).color(0xFFFFFF).rect(2, 0, 2, 6)
-        .size(2).color(0xFFFF99).circle(4, 4 + (oy - pos.y), 4);
+        .size(2).color(0xFFFFCC).circle(4, 4 + (oy - pos.y), 4);
     } else {
       art.cache(100).size(3).color(0xFFFFFF).rect(0, 0, 2, 6);
     }
@@ -348,7 +364,17 @@ class Enemy extends Entity {
   public var wave: Wave;
   var dotcount = 0;
   override public function begin() {
-    art.size(6, 5, 4).color(0x000000);
+    draw();
+    wx = args[0];
+    wy = args[1];
+    pos.x = args[2].x;
+    pos.y = args[2].y;
+    wave = args[4];
+    addHitBox(Rect(0, 0, 30, 24));
+  }
+
+  function draw(?c: Int = 0x000000) {
+    art.size(6, 5, 4).color(c);
     for (y in 0...4) {
       for (x in 0... 5) {
         if (args[3][x + y*5]) {
@@ -357,13 +383,6 @@ class Enemy extends Entity {
         }
       }
     }
-
-    wx = args[0];
-    wy = args[1];
-    pos.x = args[2].x;
-    pos.y = args[2].y;
-    wave = args[4];
-    addHitBox(Rect(0, 0, 30, 24));
   }
 
   public function shoot() {
@@ -376,15 +395,20 @@ class Enemy extends Entity {
     }
 
     if (Game.main.player != null && hit(Game.main.player.bullet)) {
-      Game.shake(0.1);
-      remove();
-      wave.all.remove(this);
+      Game.shake(0.2);
+      draw(0xFFFFFF);
+      Game.delay(0.01);
+      new Timer().delay(0.1).run(function() {
+        remove();
+        wave.all.remove(this);
+        new Particle().xy(pos.x, pos.y).color(0xFFFFFF)
+          .spread(Const(5))
+          .count(Const(dotcount)).size(Const(6)).speed(Rand(20, 50)).duration(Const(0.5));
+        return false;
+      });
       Game.main.player.bullet.remove();
       Game.main.player.bullet = null;
       Game.main.bar.addScore(10*Game.main.waveCount);
-      new Particle().xy(pos.x, pos.y).color(0x000000)
-        .count(Const(dotcount)).size(Const(6)).speed(Rand(20, 50)).duration(Const(0.5));
-
     }
   }
 }
