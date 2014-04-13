@@ -42,9 +42,11 @@ class Asteroid extends Game {
   var fdisplay: Array<Text>;
   var count = 0.0;
   var flip = false;
+  var finalscore = 0.0;
   override public function final() {
     new Score(score, true);
     count = 0.0;
+    finalscore = score;
     flip = true;
     fdisplay = [];
   }
@@ -61,7 +63,7 @@ class Asteroid extends Game {
       if (flip) {
         fdisplay.push(
           new Text().color(0xFFFFFF).xy(240, 240)
-            .size(12).text(""+Std.int(score)));
+            .size(12).text(""+Std.int(finalscore)));
       } else {
         fdisplay.push(new Text().color(0xFFFFFF).xy(240, 120).size(9).text("SUPER"));
         fdisplay.push(new Text().color(0xFFFFFF).xy(240, 240).size(9).text("HOT"));
