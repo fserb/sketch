@@ -1,9 +1,12 @@
-//@ ugl.bgcolor = 0x000000
+//@ ugl.bgcolor = 0x04a2fc
+//0x3b4964
 
 /*
-- new layout
+- bigger better bullets
+- shaking when hit
 - pick a pattern
 - level change
+- x/ytime patterns
 - poop/enemy colision
 - score
 - lives?
@@ -45,7 +48,7 @@ class Hypermania extends Game {
 class Player extends Entity {
   public var bullet: Bullet = null;
   override public function begin() {
-    art.size(3, 8, 12).obj([0x2d32b8], "
+    art.size(3, 8, 12).obj([0xFFFFFF], "
 ...00...
 ..0000..
 .000000.
@@ -88,7 +91,7 @@ class Player extends Entity {
 
 class Bullet extends Entity {
   override public function begin() {
-    art.size(3).color(0x2d32b8).rect(0, 0, 2, 6);
+    art.size(3).color(0xFFFFFF).rect(0, 0, 2, 6);
     pos.y = 480-80-18;
     addHitBox(Rect(0, 0, 6, 18));
   }
@@ -174,12 +177,18 @@ class Wave extends Entity {
     all = new Array<Enemy>();
 
     var pat = [];
+    var cnt = 0;
     for (i in 0...(4*5)) pat.push(false);
-    for (y in 0...4) {
-      for (x in 0... (Std.int(5/2)+1)) {
-        if (Math.random() < 0.5) {
-          pat[y*5 + x] = true;
-          pat[y*5 + (4 - x)] = true;
+    while (cnt < 10) {
+      cnt = 0;
+      for (y in 0...4) {
+        for (x in 0... (Std.int(5/2)+1)) {
+          if (Math.random() < 0.5) {
+            pat[y*5 + x] = true;
+            pat[y*5 + (4 - x)] = true;
+            cnt += 1;
+            if (x != 3) cnt += 1;
+          }
         }
       }
     }
@@ -226,7 +235,7 @@ class Enemy extends Entity {
   public var wy: Int;
   public var shooting: Float;
   override public function begin() {
-    art.size(6, 5, 4).color(0xC659B3);
+    art.size(6, 5, 4).color(0x000000);
     for (y in 0...4) {
       for (x in 0... 5) {
         if (args[3][x + y*5]) {
@@ -244,7 +253,7 @@ class Enemy extends Entity {
   }
 
   override public function update() {
-    if (pos.y > 0 && Math.random() < shooting*Game.time*0.3) {
+    if (pos.y > 0 && Math.random() < shooting*Game.time*0.5) {
       new EnemyBullet(pos.x + 6, pos.y + 21);
     }
 
@@ -258,7 +267,7 @@ class Enemy extends Entity {
 
 class EnemyBullet extends Entity {
   override public function begin() {
-    art.size(3).color(0x990000).rect(0, 0, 2, 6);
+    art.size(3).color(0x000000).rect(0, 0, 2, 6);
     pos.x = args[0];
     pos.y = args[1];
     addHitBox(Rect(0, 0, 6, 18));
@@ -277,10 +286,11 @@ class Bar extends Entity {
     alignment = TOPLEFT;
     pos.x = 0;
     pos.y = 410;
-    gfx.fill(0xAAAAAAA).rect(0, 0, 480, 70);
+    gfx.fill(0x024972).rect(0, 0, 480, 70);
     new Energy();
   }
 }
+
 
 class Energy extends Entity {
   static var layer = 101;
@@ -290,9 +300,8 @@ class Energy extends Entity {
     pos.y = 430;
   }
   override public function update() {
-    var e = Std.int(Game.main.energy);
-    gfx.cache(e).fill(0x990000).rect(0, 0, 400, 10)
-      .fill(0x009999).rect(0, 0, 400*e/100, 10);
+    gfx.fill(0x011f30).rect(0, 0, 400, 10)
+      .fill(0xe65205).rect(0, 0, 400*Game.main.energy/100, 10);
   }
 }
 
