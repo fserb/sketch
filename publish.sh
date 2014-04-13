@@ -10,9 +10,9 @@ if [ "$1" != "" ]; then
   SOURCE="$1"
 fi
 
-for f in "$SOURCE"; do
+for f in $SOURCE; do
   ./select.py "$f"
-  D=`cat "$f" | grep -v "//" | grep Game.debug`
+  D=`cat "$f" | grep -v "//" | grep "Game.debug ="`
   if [ "$D" == "" ]; then
     N=`echo "$f" | cut -c 5- | rev | cut -c 4- | rev`
     echo "$N"
