@@ -2,6 +2,7 @@
 
 /*
 - enemies shoot when you are under them
+- lives?
 */
 
 import vault.ugl.*;
@@ -95,7 +96,7 @@ class Hypermania extends Game {
   override public function update() {
     if (wave == null) return;
 
-    energy -= Game.time*100.0/75.0;
+    energy -= Game.time*100.0/120.0;
 
     if (energy <= 0) {
       player.explode();
@@ -153,7 +154,7 @@ class Player extends Entity {
         sndBullet.play();
         bullet = new Bullet();
         new Light(bullet.pos, true);
-        Game.main.energy -= 100.0/100.0;
+        Game.main.energy -= 100.0/200.0;
         pos.y = 480 - 80;
       }
     } else {
@@ -280,8 +281,8 @@ class Wave extends Entity {
       xmove: function(y, t) { if (t == 0) return 240;
         var s = Std.int(1.5*t)%6;
         return (s == 0 || s == 4) ? 0 : (s == 1 || s == 3) ? -300 : 300; },
-      ymove: function(t) { return (Std.int(t)%3 != 0) ? 50 : 0; },
-      shooting: 0.5,
+      ymove: function(t) { return (Std.int(t)%3 != 0) ? 40 : 0; },
+      shooting: 0.4,
     },
     { // megamania 7
       spawn: Horizontal(5, 3, 50),
