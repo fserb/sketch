@@ -2,9 +2,6 @@
 
 /*
 - enemies shoot when you are under them
-- make it harder to shoot enemies
-- ticker
-- bug with lvl8 shooting
 */
 
 import vault.ugl.*;
@@ -23,7 +20,7 @@ class Hypermania extends Game {
   var sndBegin: Sound;
 
   static public function main() {
-    Game.debug = true;
+    // Game.debug = true;
     new Hypermania("Hypermania", "");
   }
 
@@ -155,7 +152,6 @@ class Player extends Entity {
       if (Game.key.b1) {
         sndBullet.play();
         bullet = new Bullet();
-        bullet.pos.x = Game.main.player.pos.x;
         new Light(bullet.pos, true);
         Game.main.energy -= 100.0/100.0;
         pos.y = 480 - 80;
@@ -190,9 +186,9 @@ class Light extends Entity {
 }
 
 class Bullet extends Entity {
-  var oy = 0.0;
   override public function begin() {
-    oy = pos.y = 480 - 80 - 18 - 18;
+    pos.x = Game.main.player.pos.x;
+    pos.y = 480 - 80 - 18 - 18;
     art.size(3).color(0xFFFFFF).rect(0, 0, 2, 6);
     addHitBox(Rect(0, 0, 6, 18));
   }
@@ -295,7 +291,7 @@ class Wave extends Entity {
     },
     { // megamania 8
       spawn: Vertical(3, 6, 102),
-      xmove: function(y, t) { if (t == 0) return y*3211; return 0; },
+      xmove: function(y, t) { if (t == 0) return (y*7843)%480; return 0; },
       ymove: function(t) { return 200; },
       shooting: 0.0,
     },
@@ -458,17 +454,26 @@ class Enemy extends Entity {
     sndBullet.play();
   }
 
+  var exploding = false;
   override public function update() {
+    if (exploding) return;
+
     if (hit(Game.main.player)) {
+      exploding = true;
       Game.main.player.explode();
+      remove();
+      wave.all.remove(this);
       sndExplode.play();
     }
 
     if (Game.main.player != null && hit(Game.main.player.bullet)) {
       Game.shake(0.2);
+      exploding = true;
       draw(0xFFFFFF);
       sndExplode.play();
       Game.delay(0.01);
+      Game.main.player.bullet.explode(true);
+      Game.main.bar.addScore(1*(Game.main.waveCount+1)*Game.main.player.combo);
       new Timer().delay(0.1).run(function() {
         remove();
         wave.all.remove(this);
@@ -477,8 +482,6 @@ class Enemy extends Entity {
           .count(Const(dotcount)).size(Const(6)).speed(Rand(20, 50)).duration(Const(0.5));
         return false;
       });
-      Game.main.player.bullet.explode(true);
-      Game.main.bar.addScore(1*(Game.main.waveCount+1)*Game.main.player.combo);
     }
   }
 }
