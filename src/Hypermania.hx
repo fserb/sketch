@@ -3,8 +3,6 @@
 
 /*
 - x/ytime patterns
-- score
-- lives?
 - make it harder to shoot enemies
 */
 
@@ -109,6 +107,7 @@ class Player extends Entity {
   }
 
   public function explode() {
+    if (bullet != null) bullet.remove();
     remove();
     new Particle().xy(pos.x, pos.y).color(0xFFFFFF)
       .count(Const(80)).size(Const(6)).speed(Rand(20, 50)).duration(Const(1.5));
@@ -117,12 +116,6 @@ class Player extends Entity {
   }
 
   override public function update() {
-    if (Game.key.left) {
-      pos.x = Math.max(18, pos.x - 200*Game.time);
-    } else if (Game.key.right) {
-      pos.x = Math.min(480 - 18, pos.x + 200*Game.time);
-    }
-
     if (bullet == null) {
       if (Game.key.b1) {
         bullet = new Bullet();
@@ -136,6 +129,12 @@ class Player extends Entity {
         bullet.remove();
         bullet = null;
       }
+    }
+    var speed = Game.key.b1 ? 200 : 300;
+    if (Game.key.left) {
+      pos.x = Math.max(18, pos.x - speed*Game.time);
+    } else if (Game.key.right) {
+      pos.x = Math.min(480 - 18, pos.x + speed*Game.time);
     }
   }
 }
