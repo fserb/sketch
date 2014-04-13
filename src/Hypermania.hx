@@ -2,12 +2,10 @@
 //0x3b4964
 
 /*
-- pick a pattern
-- level change
 - x/ytime patterns
-- poop/enemy colision
 - score
 - lives?
+- make it harder to shoot enemies
 */
 
 import vault.ugl.*;
@@ -17,8 +15,12 @@ import vault.Vec2;
 import vault.ugl.PixelArt.C;
 
 class Hypermania extends Game {
-  var player: Player;
+  public var player: Player;
+  public var score: Float;
   public var energy: Float;
+  public var bar: Bar;
+  var wave: Wave;
+  var waveCount: Int;
 
   static public function main() {
     Game.debug = true;
@@ -26,20 +28,62 @@ class Hypermania extends Game {
   }
 
   override public function end() {
+    player = null;
   }
 
   override public function begin() {
-    new Bar();
+    bar = new Bar();
     player = new Player();
-    new Wave();
     energy = 100.0;
+    wave = null;
+    waveCount = 0;
+    score = 0.0;
+    beginLevel();
+  }
+
+  function beginLevel() {
+    if (energy <= 0) energy = 1;
+    new Timer().run(function() {
+      energy = Math.min(100, energy + Game.time*100/2.0);
+      if (wave != null) {
+        wave.reset();
+      }
+      return energy < 100;
+    }).run(function() {
+      if (wave == null || wave.dead) {
+        waveCount += 1;
+        wave = new Wave();
+      }
+      wave.reset();
+      return false;
+    });
   }
 
   override public function final() {
   }
 
+  function nextLevel() {
+    if (wave == null) return;
+    wave = null;
+    new Timer().run(function() {
+      var oe = energy;
+      energy = Math.max(1, energy - Game.time*100/2.0);
+      bar.addScore(waveCount*10*(oe - energy));
+      if (energy > 1) return true;
+      beginLevel();
+      return false;
+    });
+  }
+
   override public function update() {
-    energy -= Game.time*100.0/120.0;
+    if (wave == null) return;
+
+    energy -= Game.time*100.0/75.0;
+
+    if (Game.key.b2_pressed) {
+      wave.remove();
+      nextLevel();
+    }
   }
 }
 
@@ -64,22 +108,31 @@ class Player extends Entity {
     addHitBox(Rect(0, 0, 24, 36));
   }
 
+  public function explode() {
+    remove();
+    new Particle().xy(pos.x, pos.y).color(0xFFFFFF)
+      .count(Const(80)).size(Const(6)).speed(Rand(20, 50)).duration(Const(1.5));
+    Game.shake(1.0);
+    Game.endGame();
+  }
+
   override public function update() {
     if (Game.key.left) {
-      pos.x = Math.max(36, pos.x - 200*Game.time);
+      pos.x = Math.max(18, pos.x - 200*Game.time);
     } else if (Game.key.right) {
-      pos.x = Math.min(480 - 36, pos.x + 200*Game.time);
+      pos.x = Math.min(480 - 18, pos.x + 200*Game.time);
     }
 
     if (bullet == null) {
       if (Game.key.b1) {
         bullet = new Bullet();
-        Game.main.energy -= Game.time*100.0/60.0;
+        bullet.pos.x = Game.main.player.pos.x;
+        Game.main.energy -= 100.0/100.0;
       }
     } else {
       bullet.pos.x = Game.main.player.pos.x;
-      bullet.pos.y -= 600*Game.time;
-      if (bullet.pos.y < 9) {
+      bullet.pos.y -= 500*Game.time;
+      if (bullet.pos.y < -9) {
         bullet.remove();
         bullet = null;
       }
@@ -88,15 +141,19 @@ class Player extends Entity {
 }
 
 class Bullet extends Entity {
+  var oy = 0.0;
   override public function begin() {
-    art.cache(0).size(2).color(0xFFFFFF).circle(3, 3, 3);
-    pos.y = 480-80-18 - 18;
+    oy = pos.y = 480 - 80 - 18 - 18;
+
     addHitBox(Rect(0, 0, 6, 18));
   }
 
   override public function update() {
-    if (ticks > 0.07) {
-      art.cache(1).size(3).color(0xFFFFFF).rect(0, 0, 2, 6);
+    if (ticks < 0.07) {
+      art.clear().size(3).color(0xFFFFFF).rect(2, 0, 2, 6)
+        .size(2).color(0xFFFF99).circle(4, 4 + (oy - pos.y), 4);
+    } else {
+      art.cache(100).size(3).color(0xFFFFFF).rect(0, 0, 2, 6);
     }
   }
 }
@@ -114,7 +171,8 @@ typedef Strategy = {
 };
 
 class Wave extends Entity {
-  var all: Array<Enemy>;
+  public var all: List<Enemy>;
+  var horizontal: Bool;
 
   static var STRATS: Array<Strategy> = [
     { // megamania 1
@@ -178,8 +236,6 @@ class Wave extends Entity {
   }
 
   function spawn() {
-    all = new Array<Enemy>();
-
     var pat = [];
     var cnt = 0;
     for (i in 0...(4*5)) pat.push(false);
@@ -197,25 +253,55 @@ class Wave extends Entity {
       }
     }
 
+    all = new List<Enemy>();
     switch (strategy.spawn) {
       case Horizontal(width, height, dy):
+        horizontal = true;
         var dx = (480 + 30)/width;
         for (y in 0...height) {
           for (x in 0...width) {
             var e = new Enemy(x, y,
               new Vec2(x*dx + (y%2)*(dx/2) - 496, 50.0 + y*dy),
-              pat, strategy.shooting);
-            all.push(e);
+              pat, this);
+            all.add(e);
           }
         }
       case Vertical(width, height, dx):
-      var dy = (400 + 30)/height;
+        horizontal = false;
+        var dy = (400 + 30)/height;
         for (y in 0...height) {
           for (x in 0...width) {
             var e = new Enemy(x, y,
-              new Vec2(x*dx + strategy.xmove(y, 0), -dy*y),
-              pat, strategy.shooting);
-            all.push(e);
+              new Vec2(15 + x*dx + strategy.xmove(y, 0), -dy*y),
+              pat, this);
+            all.add(e);
+          }
+        }
+    }
+  }
+
+  public function reset() {
+    switch (strategy.spawn) {
+      case Horizontal(_, _, _):
+       var maxx = 0.0;
+        for (e in all) {
+          maxx = Math.max(maxx, e.pos.x);
+        }
+        if (maxx > 0) {
+          maxx += 100;
+          for (e in all) {
+            e.pos.x -= maxx;
+          }
+        }
+      case Vertical(_, _, _):
+        var maxy = 0.0;
+        for (e in all) {
+          maxy = Math.max(maxy, e.pos.y);
+        }
+        if (maxy > 0) {
+          maxy += 30;
+          for (e in all) {
+            e.pos.y -= maxy;
           }
         }
     }
@@ -224,12 +310,35 @@ class Wave extends Entity {
   override public function update() {
     var xtick = ticks;
     var ytick = ticks;
+
+    var shoot = false;
+    if (Math.random() < strategy.shooting*Game.time) {
+      shoot = true;
+    }
+
+    var shooter: Enemy = null;
+    var cnt = 0;
     for (e in all) {
       e.pos.x += strategy.xmove(e.wy, xtick)*Game.time;
       e.pos.y += strategy.ymove(ytick)*Game.time;
       if (e.pos.x >= 480+15) { e.pos.x -= 480+30; }
-      if (e.pos.x <= -15) { e.pos.x += 480+30; }
-      if (e.pos.y >= 415) { e.pos.y -= 400+30; }
+      if (!horizontal && e.pos.x <= -15) { e.pos.x += 480+30; }
+      if (!horizontal && e.pos.y >= 415) { e.pos.y -= 400+30; }
+
+      if (e.pos.y > 0 && shoot) {
+        cnt += 1;
+        if (shooter == null || Math.random() < 1.0/cnt) {
+          shooter = e;
+        }
+      }
+    }
+    if (shooter != null) {
+      shooter.shoot();
+    }
+
+    if (all.length == 0) {
+      remove();
+      Game.main.nextLevel();
     }
   }
 }
@@ -237,13 +346,15 @@ class Wave extends Entity {
 class Enemy extends Entity {
   public var wx: Int;
   public var wy: Int;
-  public var shooting: Float;
+  public var wave: Wave;
+  var dotcount = 0;
   override public function begin() {
     art.size(6, 5, 4).color(0x000000);
     for (y in 0...4) {
       for (x in 0... 5) {
         if (args[3][x + y*5]) {
           art.dot(x, y);
+          dotcount += 1;
         }
       }
     }
@@ -252,20 +363,29 @@ class Enemy extends Entity {
     wy = args[1];
     pos.x = args[2].x;
     pos.y = args[2].y;
-    shooting = args[4];
-    addHitBox(Rect(0, 0, 33, 21));
+    wave = args[4];
+    addHitBox(Rect(0, 0, 30, 24));
+  }
+
+  public function shoot() {
+    new EnemyBullet(pos.x + 2.5, pos.y + 12);
   }
 
   override public function update() {
-    if (pos.y > 0 && Math.random() < shooting*Game.time*0.5) {
-      new EnemyBullet(pos.x + 2.5, pos.y + 12);
+    if (hit(Game.main.player)) {
+      Game.main.player.explode();
     }
 
-    if (Game.main.player.bullet != null && hit(Game.main.player.bullet)) {
+    if (Game.main.player != null && hit(Game.main.player.bullet)) {
       Game.shake(0.1);
       remove();
+      wave.all.remove(this);
       Game.main.player.bullet.remove();
       Game.main.player.bullet = null;
+      Game.main.bar.addScore(10*Game.main.waveCount);
+      new Particle().xy(pos.x, pos.y).color(0x000000)
+        .count(Const(dotcount)).size(Const(6)).speed(Rand(20, 50)).duration(Const(0.5));
+
     }
   }
 }
@@ -278,10 +398,14 @@ class EnemyBullet extends Entity {
     addHitBox(Rect(0, 0, 6, 18));
   }
   override public function update() {
+    if (hit(Game.main.player)) {
+      Game.main.player.explode();
+    }
+
     if (ticks > 0.07) {
       art.cache(1).size(3).color(0x000000).rect(0, 0, 2, 6);
     }
-    pos.y += 500*Game.time;
+    pos.y += 400*Game.time;
     if (pos.y >= 420) {
       remove();
     }
@@ -290,15 +414,34 @@ class EnemyBullet extends Entity {
 
 class Bar extends Entity {
   static var layer = 100;
+  var displayScore: Text;
+
   override public function begin() {
     alignment = TOPLEFT;
     pos.x = 0;
     pos.y = 410;
     gfx.fill(0x024972).rect(0, 0, 480, 70);
     new Energy();
+    displayScore = new Text().align(TOP_RIGHT).xy(440, 445)
+      .size(2).color(0xe65205);
+  }
+
+  var buffer = 0.0;
+  public function addScore(s: Float) {
+    buffer += s;
+  }
+
+  override public function update() {
+    displayScore.text("" + Std.int(Game.main.score));
+    if (buffer >= 10 && ticks > 0.2) {
+      new Text().xy(455, 455)
+        .color(0xe65205).move(0, -40).duration(0.3).text("+"+Std.int(buffer));
+      Game.main.score += Std.int(buffer);
+      buffer -= Std.int(buffer);
+      ticks = 0.0;
+    }
   }
 }
-
 
 class Energy extends Entity {
   static var layer = 101;
@@ -308,7 +451,8 @@ class Energy extends Entity {
     pos.y = 430;
   }
   override public function update() {
-    gfx.fill(0x011f30).rect(0, 0, 400, 10)
+    gfx.clear()
+      .fill(0x011f30).rect(0, 0, 400, 10)
       .fill(0xe65205).rect(0, 0, 400*Game.main.energy/100, 10);
   }
 }
