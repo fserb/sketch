@@ -2,8 +2,6 @@
 //0x3b4964
 
 /*
-- bigger better bullets
-- shaking when hit
 - pick a pattern
 - level change
 - x/ytime patterns
@@ -76,7 +74,7 @@ class Player extends Entity {
     if (bullet == null) {
       if (Game.key.b1) {
         bullet = new Bullet();
-        Game.main.energy -= Game.time*100.0/120.0;
+        Game.main.energy -= Game.time*100.0/60.0;
       }
     } else {
       bullet.pos.x = Game.main.player.pos.x;
@@ -91,9 +89,15 @@ class Player extends Entity {
 
 class Bullet extends Entity {
   override public function begin() {
-    art.size(3).color(0xFFFFFF).rect(0, 0, 2, 6);
-    pos.y = 480-80-18;
+    art.cache(0).size(2).color(0xFFFFFF).circle(3, 3, 3);
+    pos.y = 480-80-18 - 18;
     addHitBox(Rect(0, 0, 6, 18));
+  }
+
+  override public function update() {
+    if (ticks > 0.07) {
+      art.cache(1).size(3).color(0xFFFFFF).rect(0, 0, 2, 6);
+    }
   }
 }
 
@@ -254,10 +258,11 @@ class Enemy extends Entity {
 
   override public function update() {
     if (pos.y > 0 && Math.random() < shooting*Game.time*0.5) {
-      new EnemyBullet(pos.x + 6, pos.y + 21);
+      new EnemyBullet(pos.x + 2.5, pos.y + 12);
     }
 
     if (Game.main.player.bullet != null && hit(Game.main.player.bullet)) {
+      Game.shake(0.1);
       remove();
       Game.main.player.bullet.remove();
       Game.main.player.bullet = null;
@@ -267,12 +272,15 @@ class Enemy extends Entity {
 
 class EnemyBullet extends Entity {
   override public function begin() {
-    art.size(3).color(0x000000).rect(0, 0, 2, 6);
+    art.cache(0).size(2).color(0x000000).circle(3, 3, 3);
     pos.x = args[0];
     pos.y = args[1];
     addHitBox(Rect(0, 0, 6, 18));
   }
   override public function update() {
+    if (ticks > 0.07) {
+      art.cache(1).size(3).color(0x000000).rect(0, 0, 2, 6);
+    }
     pos.y += 500*Game.time;
     if (pos.y >= 420) {
       remove();
