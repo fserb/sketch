@@ -4,7 +4,13 @@ TARGET="../../www/content/games/ugl"
 
 mv project.xml .tmp.xml
 
-for f in src/*; do
+SOURCE="src/*"
+
+if [ "$1" != "" ]; then
+  SOURCE="$1"
+fi
+
+for f in "$SOURCE"; do
   ./select.py "$f"
   D=`cat "$f" | grep -v "//" | grep Game.debug`
   if [ "$D" == "" ]; then
