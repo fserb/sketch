@@ -1,10 +1,10 @@
 //@ ugl.bgcolor = 0x04a2fc
 
 /*
-- sound
 - enemies shoot when you are under them
 - make it harder to shoot enemies
 - ticker
+- bug with lvl8 shooting
 */
 
 import vault.ugl.*;
@@ -20,6 +20,7 @@ class Hypermania extends Game {
   public var bar: Bar;
   var wave: Wave;
   var waveCount: Int;
+  var sndBegin: Sound;
 
   static public function main() {
     Game.debug = true;
@@ -33,20 +34,23 @@ class Hypermania extends Game {
   override public function begin() {
     bar = new Bar();
     player = new Player();
-    energy = 100.0;
+    energy = 0.0;
     wave = null;
     waveCount = 0;
     score = 0.0;
+    sndBegin = new Sound(8428).powerup();
     beginLevel();
   }
 
   function beginLevel() {
     if (energy <= 0) energy = 1;
+    sndBegin.play();
     new Timer().run(function() {
-      energy = Math.min(100, energy + Game.time*100/1.0);
+      energy = Math.min(100, energy + Game.time*100/0.75);
       if (wave != null) {
         wave.reset();
       }
+
       return energy < 100;
     }).run(function() {
       if (wave == null || wave.dead) {
@@ -73,10 +77,18 @@ class Hypermania extends Game {
     if (wave == null) return;
     waveCount += 1;
     wave = null;
+    var cnter = 0.0;
+    var sndReload = new Sound(1345).explosion().vol(0.1);
     new Timer().run(function() {
       var oe = energy;
-      energy = Math.max(1, energy - Game.time*100/2.0);
-      bar.addScore(waveCount*10*(oe - energy));
+      energy = Math.max(1, energy - Game.time*100/1.5);
+      bar.addScore(waveCount*2*(oe - energy));
+      cnter -= Game.time;
+      if (cnter <= 0.0) {
+        sndReload.play();
+        cnter += 0.10;
+      }
+
       if (energy > 1) return true;
       beginLevel();
       return false;
@@ -105,6 +117,7 @@ class Hypermania extends Game {
 class Player extends Entity {
   public var bullet: Bullet = null;
   public var combo: Int = 0;
+  var sndBullet: Sound;
   override public function begin() {
     art.size(3, 8, 12).obj([0xFFFFFF], "
 ...00...
@@ -122,11 +135,13 @@ class Player extends Entity {
     pos.x = 240;
     pos.y = 480 - 80 - 18;
     addHitBox(Rect(0, 0, 24, 36));
+    sndBullet = new Sound(1350).laser();
   }
 
   public function explode() {
     if (bullet != null) bullet.remove();
     remove();
+    new Sound(1344).explosion().play();
     new Particle().xy(pos.x, pos.y).color(0xFFFFFF)
       .count(Const(80)).size(Const(6)).speed(Rand(20, 50)).duration(Const(1.5));
     Game.shake(1.0);
@@ -138,16 +153,17 @@ class Player extends Entity {
 
     if (bullet == null) {
       if (Game.key.b1) {
+        sndBullet.play();
         bullet = new Bullet();
         bullet.pos.x = Game.main.player.pos.x;
-        new Light(bullet.pos);
+        new Light(bullet.pos, true);
         Game.main.energy -= 100.0/100.0;
         pos.y = 480 - 80;
       }
     } else {
       bullet.pos.x = Game.main.player.pos.x;
       bullet.pos.y -= 500*Game.time;
-      if (bullet.pos.y < -9) {
+      if (bullet.pos.y < 9) {
         bullet.explode(false);
       }
     }
@@ -163,9 +179,10 @@ class Player extends Entity {
 class Light extends Entity {
   static var layer = 50;
   override public function begin() {
-    gfx.fill(0xFFFFCC).circle(12, 12, 12);
     pos.x = args[0].x;
     pos.y = args[0].y;
+    var s = args[1] ? 12 : 8;
+    gfx.fill(args[1] ? 0xFFFFCC : 0x000000).circle(s, s, s);
   }
   override public function update() {
     remove();
@@ -410,6 +427,8 @@ class Enemy extends Entity {
   public var wy: Int;
   public var wave: Wave;
   var dotcount = 0;
+  var sndBullet: Sound;
+  var sndExplode: Sound;
   override public function begin() {
     draw();
     wx = args[0];
@@ -418,6 +437,8 @@ class Enemy extends Entity {
     pos.y = args[2].y;
     wave = args[4];
     addHitBox(Rect(0, 0, 30, 24));
+    sndBullet = new Sound(1403).laser().cache("enemy-bullet");
+    sndExplode = new Sound(1345).explosion().cache("enemy-explode");
   }
 
   function draw(?c: Int = 0x000000) {
@@ -434,16 +455,19 @@ class Enemy extends Entity {
 
   public function shoot() {
     new EnemyBullet(pos.x + 2.5, pos.y + 12);
+    sndBullet.play();
   }
 
   override public function update() {
     if (hit(Game.main.player)) {
       Game.main.player.explode();
+      sndExplode.play();
     }
 
     if (Game.main.player != null && hit(Game.main.player.bullet)) {
       Game.shake(0.2);
       draw(0xFFFFFF);
+      sndExplode.play();
       Game.delay(0.01);
       new Timer().delay(0.1).run(function() {
         remove();
@@ -454,23 +478,24 @@ class Enemy extends Entity {
         return false;
       });
       Game.main.player.bullet.explode(true);
-      Game.main.bar.addScore(10*(Game.main.waveCount+1)*Game.main.player.combo);
+      Game.main.bar.addScore(1*(Game.main.waveCount+1)*Game.main.player.combo);
     }
   }
 }
 
 class EnemyBullet extends Entity {
   override public function begin() {
-    art.cache(0).size(2).color(0x000000).circle(3, 3, 3);
+    art.size(3).color(0x000000).rect(0, 0, 2, 6);
     pos.x = args[0];
     pos.y = args[1];
     addHitBox(Rect(0, 0, 6, 18));
+    new Light(pos, false);
   }
   override public function update() {
     if (Game.main.player != null && hit(Game.main.player.bullet)) {
       Game.shake(0.1);
       Game.main.player.bullet.explode(true);
-      art.cache(0).size(2).color(0xFFFFFF).circle(3, 3, 3);
+      art.clear().size(2).color(0xFFFFFF).rect(0, 0, 2, 6);
       new Timer().delay(0.1).run(function() {
         remove();
         return false;
@@ -482,9 +507,6 @@ class EnemyBullet extends Entity {
       Game.main.player.explode();
     }
 
-    if (ticks > 0.07) {
-      art.cache(1).size(3).color(0x000000).rect(0, 0, 2, 6);
-    }
     pos.y += 400*Game.time;
     if (pos.y >= 420) {
       remove();
@@ -513,7 +535,7 @@ class Bar extends Entity {
 
   override public function update() {
     displayScore.text("" + Std.int(Game.main.score));
-    if (buffer >= 10 && ticks > 0.2) {
+    if (buffer >= 1 && ticks > 0.2) {
       new Text().xy(455, 455)
         .color(0xe65205).move(0, -40).duration(0.3).text("+"+Std.int(buffer));
       Game.main.score += Std.int(buffer);
