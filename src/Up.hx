@@ -94,11 +94,10 @@ class Engine extends Entity {
   public function throtle() {
     force = Math.min(5, force + 20*Game.time);
     player.thrust(force, relative_angle + Math.PI);
-    new Particle().color(0xaa9936).count(Rand(force/5, 2)).size(Rand(5, 5))
-      .xy(pos.x, pos.y)
-      .speed(Rand(force*50, 100))
-      .direction(Rand(angle + relative_angle - Math.PI/8, Math.PI/4))
-      .delay(Rand(0, 0.05)).duration(Rand(0.25, 0.1));
+    new Particle().color(0xaa9936).count(force/5, 2).size(5, 5)
+      .xy(pos.x, pos.y).speed(force*50, 100)
+      .direction(angle + relative_angle - Math.PI/8, Math.PI/4)
+      .delay(0, 0.05).duration(0.25, 0.1);
   }
 }
 
@@ -152,9 +151,9 @@ class Player extends Entity {
   }
 
   public function kill() {
-    new Particle().color(0x2ca244).count(Const(100))
+    new Particle().color(0x2ca244).count(100)
       .xy(pos.x, pos.y)
-      .size(Rand(5, 25)).speed(Rand(20, 30)).delay(Const(0)).duration(Rand(2, 0.5));
+      .size(5, 25).speed(20, 30).delay(0).duration(2, 0.5);
     for (e in engines) {
       e.remove();
     }

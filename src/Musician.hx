@@ -210,9 +210,9 @@ class Tomato extends Entity {
 
   override public function update() {
     if (hit(Game.main.player)) {
-      new Particle().color(C.red).xy(pos.x, pos.y).count(Const(500))
-        .size(Rand(10, 5)).speed(Rand(0, vel.length/2.0))
-        .delay(Const(0)).duration(Rand(0.5, 0.5));
+      new Particle().color(C.red).xy(pos.x, pos.y).count(500)
+        .size(10, 5).speed(0, vel.length/2.0)
+        .delay(0).duration(0.5, 0.5);
       remove();
       new Sound(16).explosion().play();
       Game.endGame();

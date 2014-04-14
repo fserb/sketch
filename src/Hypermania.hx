@@ -143,7 +143,7 @@ class Player extends Entity {
     remove();
     new Sound(1344).explosion().play();
     new Particle().xy(pos.x, pos.y).color(0xFFFFFF)
-      .count(Const(80)).size(Const(6)).speed(Rand(20, 50)).duration(Const(1.5));
+      .count(80).size(6).speed(20, 50).duration(1.5);
     Game.shake(1.0);
     Game.endGame();
   }
@@ -480,9 +480,8 @@ class Enemy extends Entity {
       new Timer().delay(0.1).run(function() {
         remove();
         wave.all.remove(this);
-        new Particle().xy(pos.x, pos.y).color(0xFFFFFF)
-          .spread(Const(5))
-          .count(Const(dotcount)).size(Const(6)).speed(Rand(20, 50)).duration(Const(0.5));
+        new Particle().xy(pos.x, pos.y).color(0xFFFFFF).spread(5)
+          .count(dotcount).size(6).speed(20, 50).duration(0.5);
         return false;
       });
     }

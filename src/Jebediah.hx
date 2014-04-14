@@ -126,9 +126,8 @@ class Player extends Entity {
   }
 
   public function explode() {
-    new Particle().xy(pos.x, pos.y).count(Const(500))
-      .size(Const(4)).color(C.darkgrey)
-      .speed(Rand(10, 30)).delay(Const(0)).duration(Rand(1, 2));
+    new Particle().xy(pos.x, pos.y).count(500).size(4).color(C.darkgrey)
+      .speed(10, 30).delay(0).duration(1, 2);
     Game.main.end();
   }
 
@@ -140,10 +139,9 @@ class Player extends Entity {
       accelerate(v);
       var b = new Vec2(0, 15);
       b.rotate(angle);
-      new Particle().xy(pos.x + b.x, pos.y + b.y).count(Const(1))
-        .size(Const(5)).color(C.lightbrown)
-        .direction(Rand(angle + Math.PI/2 - Math.PI/8, Math.PI/4)).speed(Rand(50, 10))
-        .delay(Const(0)).duration(Rand(1,0.2));
+      new Particle().xy(pos.x + b.x, pos.y + b.y).count(1)
+        .size(5).color(C.lightbrown).delay(0).duration(1,0.2)
+        .direction(angle + Math.PI/2 - Math.PI/8, Math.PI/4).speed(50, 10);
     }
 
     if (Game.key.left) angle -= 2*Math.PI*Game.time/2.0;
@@ -267,9 +265,8 @@ class Asteroid extends Entity {
   }
 
   function explode() {
-    new Particle().xy(pos.x, pos.y).count(Const(200))
-      .size(Const(5)).color(0x333333)
-      .speed(Rand(10, 30)).delay(Const(0)).duration(Rand(1, 0.5));
+    new Particle().xy(pos.x, pos.y).count(200).size(5).color(0x333333)
+      .speed(10, 30).delay(0).duration(1, 0.5);
     remove();
   }
 

@@ -170,10 +170,8 @@ class Player extends Entity {
   }
 
   public function explode() {
-    new Particle().color(0xFFFFFF)
-      .count(Rand(70, 20)).xy(pos.x, pos.y)
-      .size(Rand(3, 10)).speed(Rand(5, 25))
-      .duration(Rand(2.0, 0.5));
+    new Particle().color(0xFFFFFF).count(70, 20).xy(pos.x, pos.y)
+      .size(3, 10).speed(5, 25).duration(2.0, 0.5);
     Game.shake(0.5);
     sndExp.play();
     Game.endGame();
@@ -254,10 +252,8 @@ class Ball extends Entity {
       if (hit(b)) {
         Game.main.score += 2;
         new Text().xy(pos.x, pos.y).duration(1).move(0, -20).color(0xFFFFFF).text("+2");
-        new Particle().color(0x000000)
-          .count(Rand(size*2, size)).xy(pos.x, pos.y)
-          .size(Rand(4,size/2)).speed(Rand(0, 100))
-          .duration(Rand(1.5, 0.5));
+        new Particle().color(0x000000).count(size*2, size).xy(pos.x, pos.y)
+          .size(4,size/2).speed(0, 100).duration(1.5, 0.5);
         remove();
         b.remove();
         Game.shake();
@@ -397,10 +393,8 @@ class Enemy extends Entity {
         Game.main.score += 10;
         sndExp.play();
         new Text().xy(pos.x, pos.y).duration(1).move(0, -20).color(0xFFFFFF).text("+10");
-        new Particle().color(0x000000)
-          .count(Rand(40, 20)).xy(pos.x, pos.y)
-          .size(Rand(3, 10)).speed(Rand(5, 25))
-          .duration(Rand(1.0, 0.5));
+        new Particle().color(0x000000).count(40, 20).xy(pos.x, pos.y)
+          .size(3, 10).speed(5, 25).duration(1.0, 0.5);
       }
     }
 
@@ -409,10 +403,8 @@ class Enemy extends Entity {
       remove();
       p.explode();
       sndExp.play();
-      new Particle().color(0x000000)
-        .count(Rand(40, 20)).xy(pos.x, pos.y)
-        .size(Rand(3, 10)).speed(Rand(5, 25))
-        .duration(Rand(1.0, 0.5));
+      new Particle().color(0x000000).count(40, 20).xy(pos.x, pos.y)
+        .size(3, 10).speed(5, 25).duration(1.0, 0.5);
     }
   }
 }

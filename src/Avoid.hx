@@ -57,11 +57,8 @@ class Player extends Entity {
   public function chit(s: Float) {
     size -= s;
     if (size <= 0) {
-      new Particle().color(0xe1b81f).xy(pos.x, pos.y)
-                    .count(Const(150)).size(Rand(5, 9))
-                    .delay(Const(0))
-                    .duration(Const(5.0))
-                    .speed(Rand(vel.length/10, 50));
+      new Particle().color(0xe1b81f).xy(pos.x, pos.y).count(150).size(5, 9)
+                    .delay(0).duration(5.0).speed(vel.length/10, 50);
       Game.endGame();
     }
   }
@@ -108,11 +105,8 @@ class Enemy extends Entity {
       adsc();
       player.chit(size);
       remove();
-      new Particle().color(0xe11c57).xy(pos.x, pos.y)
-                    .count(Rand(100, 20)).size(Rand(7, 5))
-                    .delay(Const(0))
-                    .duration(Const(0.5))
-                    .speed(Rand(vel.length/10, 50));
+      new Particle().color(0xe11c57).xy(pos.x, pos.y).count(100, 20).size(7, 5)
+                    .delay(0).duration(0.5).speed(vel.length/10, 50);
     }
 
     for (en in Game.get("Enemy")) {
@@ -123,20 +117,16 @@ class Enemy extends Entity {
 
       if (size > e.size) {
         new Particle().color(0xe11c57).xy(e.pos.x, e.pos.y)
-                      .count(Rand(100, 20)).size(Rand(7, 5))
-                      .delay(Const(0))
-                      .duration(Const(0.5))
-                      .speed(Rand(e.vel.length/3, 100));
+                      .count(100, 20).size(7, 5)
+                      .delay(0).duration(0.5).speed(e.vel.length/3, 100);
         size -= e.size;
         tads += e.tads;
         art.circle(size/5, size/5, size/5);
         e.remove();
       } else {
         new Particle().color(0xe11c57).xy(pos.x, pos.y)
-                      .count(Rand(100, 20)).size(Rand(7, 5))
-                      .delay(Const(0))
-                      .duration(Const(0.5))
-                      .speed(Rand(vel.length/3, 100));
+                      .count(100, 20).size(7, 5).delay(0)
+                      .duration(0.5).speed(vel.length/3, 100);
         e.size -= size;
         e.tads += tads;
         e.art.circle(e.size/5, e.size/5, e.size/5);
