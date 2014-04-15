@@ -1,7 +1,6 @@
 //@ ugl.bgcolor = 0xFFFFFF
 
 /*
-  - grid movement
   - pieces look randomly and at the cursor when close
 */
 
@@ -12,19 +11,51 @@ import vault.Vec2;
 import vault.ugl.PixelArt.C;
 
 class Gather extends Game {
-
+  var scroll: Float;
+  public var maxy: Float;
   static public function main() {
     Game.debug = true;
+    Game.baseColor = 0x000000;
     new Gather("Gather", "");
+  }
+  override public function final() {
+    Game.mouse.clear();
+    Game.key.clear();
+    Game.shake(1.0);
+    acc = 0.0;
+  }
+
+  var acc = 0.0;
+  override public function finalupdate() {
+    acc += 500*Game.time;
+    scroll += acc*Game.time;
+    if (scroll >= 480) {
+      Game.clear();
+      makeTitle();
+      state = TITLE;
+    }
+  }
+
+  override public function end() {
+    return;
+    for (e in Game.get("Cursor")) {
+      var c: Cursor = cast e;
+      if (c.py < 11 && Game.main.grid[c.px][c.py] != null) {
+        Game.main.grid[c.px][c.py].untarget();
+      }
+      c.remove();
+    }
   }
 
   public function pos(x: Int, y: Int): Vec2 {
-    return new Vec2(69 + x*38 + 19, 50 + y*38 + 19);
+    return new Vec2(69 + x*38 + 19, scroll + 50 + y*38 + 19);
   }
 
   public var grid: Array<Array<Piece>>;
 
   override public function begin() {
+    new Frame();
+    scroll = 0.0;
     grid = new Array<Array<Piece>>();
     for (x in 0...9) {
       grid.push(new Array<Piece>());
@@ -43,11 +74,47 @@ class Gather extends Game {
     }
     new Cursor(4, 5);
   }
+
+  override public function update() {
+    var speed = Game.time*10;
+    if (maxy < 240) {
+      speed *= 1 + 5*(240 - maxy)/70.0;
+    }
+
+    scroll += speed;
+    if (scroll > 0.0) {
+      scroll -= 38;
+      // move everyone down
+      for (y in 0...11) {
+        for (x in 0...9) {
+          if (grid[x][y] != null) {
+            grid[x][y].py += 1;
+          }
+        }
+      }
+
+      for (y in 0...10) {
+        for (x in 0...9) {
+          if (y != 11) {
+            grid[x][10 - y] = grid[x][9 - y];
+          }
+        }
+      }
+      for (x in 0...9) {
+        grid[x][0] = new Piece(x, 0, Std.int(Math.random()*5));
+      }
+      for (e in Game.get("Cursor")) {
+        var c: Cursor = cast e;
+        c.py += 1;
+      }
+    }
+    maxy = 0.0;
+  }
 }
 
 class Piece extends Entity {
-  var px: Int;
-  var py: Int;
+  public var px: Int;
+  public var py: Int;
   public var targeted: Bool;
   var popping: Bool;
 
@@ -118,6 +185,9 @@ class Piece extends Entity {
 
   override public function update() {
     pos = Game.main.pos(px, py);
+    if (pos.y >= 480) {
+      remove();
+    }
 
     if (popping) {
       size = Math.max(0.0, size - Game.time/0.3);
@@ -144,8 +214,8 @@ class Piece extends Entity {
 class Cursor extends Entity {
   static var layer = 11;
   public var head: Bool;
-  var px: Int;
-  var py: Int;
+  public var px: Int;
+  public var py: Int;
 
   override public function begin() {
     px = args[0];
@@ -194,6 +264,7 @@ class Cursor extends Entity {
     }
 
     // passed
+    Game.shake(0.3);
     for (e in Game.get("Cursor")) {
       var c: Cursor = cast e;
       if (!c.head) {
@@ -211,6 +282,7 @@ class Cursor extends Entity {
 
   override public function update() {
     pos = Game.main.pos(px, py);
+    Game.main.maxy = Math.max(Game.main.maxy, pos.y);
 
     if (Game.key.b1_pressed) {
       if (Game.main.grid[px][py] != null) {
@@ -222,6 +294,9 @@ class Cursor extends Entity {
       }
     }
 
+    if (pos.y >= 450) {
+      return Game.endGame();
+    }
 
     if (!head) return;
     // try to move
@@ -234,9 +309,13 @@ class Cursor extends Entity {
     // not allowed outside
     if (tx < 0 || tx >= 9 || ty < 0 || ty >= 11) {
       tx = px; ty = py;
-    }
-    if (Game.main.grid[tx][ty] == null ||
-        Game.main.grid[tx][ty].targeted) {
+    } else if (Game.main.grid[tx][ty] == null) {
+      if (Game.main.grid[px][py] == null) {
+        px = tx; py = ty;
+        return;
+      }
+      tx = px; ty = py;
+    } else if (Game.main.grid[tx][ty].targeted) {
       tx = px; ty = py;
     }
 
@@ -250,3 +329,16 @@ class Cursor extends Entity {
   }
 }
 
+class Frame extends Entity {
+  static var layer = 100;
+  override public function begin() {
+    alignment = TOPLEFT;
+    pos.x = pos.y = 0;
+    gfx.fill(0xFFFFFF)
+      .rect(0, 468, 480, 12)
+      .rect(0, 0, 480, 50)
+      .fill(null).line(1, 0xAAAAAA)
+      .mt(50, 50).lt(420, 50)
+      .mt(50, 468).lt(420, 468);
+  }
+}
