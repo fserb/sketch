@@ -1,7 +1,6 @@
 //@ ugl.bgcolor = 0xFFFFFF
 
 /*
-  - initial board example
   - more colors
 */
 
@@ -21,8 +20,9 @@ class Gather extends Game {
   var difficulty: Float;
   public var scoreColors: ScoreAnim;
   public var maxy: Float;
+  public var miny: Float;
   static public function main() {
-    // Game.debug = true;
+    Game.debug = true;
     Game.baseColor = 0x000000;
     new Gather("Gather", "");
   }
@@ -56,7 +56,49 @@ class Gather extends Game {
 
   public var grid: Array<Array<Piece>>;
 
+  static var _ = -1;
+  static var MSGS = [
+  "good luck",
+  "group with same number of each color",
+  "use keys to move, space to undo",
+];
+  static var MSGplace = 1000;
+  static var INITplace = 1000;
+  static var INIT = [
+[],
+
+// moves
+
+[ _, _, _, _, _, _, _, _, _ ],
+[ _, _, _, _, _, _, _, _, _ ],
+[ _, _, _, _, _, _, _, _, _ ],
+[ _, _, _, _, _, 2, 3, 3, _ ],
+[ _, _, _, _, 2, 3, _, _, _ ],
+[ _, _, _, _, 2, _, _, _, _ ],
+[],
+
+// first moves
+[ _, _, _, _, _, _, _, _, _ ],
+[ _, _, _, _, _, _, _, _, _ ],
+[ _, _, _, _, _, _, _, _, _ ],
+[ _, _, _, _, 1, _, _, _, _ ],
+[ _, _, _, _, 1, _, _, _, _ ],
+[ _, _, _, _, 0, _, _, _, _ ],
+[ _, _, _, _, 0, _, _, _, _ ],
+
+];
+
+  var lastmsg: Text;
+  function message(m: String) {
+    if (lastmsg != null) lastmsg.remove();
+    lastmsg = new Text().xy(240, 450).size(2).color(0x000000).text(m).duration(5);
+  }
+
   override public function begin() {
+    MSGplace = MSGplace >= 0 ? MSGS.length : -1;
+    INITplace = INITplace >= 0 ? INIT.length : -1;
+    if (Game.debug) MSGplace = INITplace = -1;
+    lastmsg = null;
     new Frame();
     scoreColors = new ScoreAnim();
     difficulty = 0.0;
@@ -71,15 +113,19 @@ class Gather extends Game {
       }
     }
 
-    for (x in 0...9) {
-      for (y in 0...11) {
-        if (x == 4 && y == 5) {
-          continue;
+    if (INITplace >= 0) {
+      for (y in 0...5) {
+        var row = INIT[--INITplace];
+        for (x in 0...9) {
+          if (row[x] == -1) continue;
+          grid[x][y] = new Piece(x, y, row[x]);
         }
-        grid[x][y] = new Piece(x, y, Std.int(Math.random()*5));
       }
+      message(MSGS[--MSGplace]);
+    } else {
     }
-    new Cursor(4, 5);
+
+    new Cursor(4, 4);
   }
 
   public function addScore(f: Float) {
@@ -95,7 +141,10 @@ class Gather extends Game {
     if (maxy < 240) {
       speed *= 1 + 9*(240 - maxy)/70.0;
     }
-    difficulty += 0.5*Game.time/60.0;
+    if (MSGplace >= 0 && miny < 122) {
+      speed *= 1 + 19*(240 - miny)/172.0;
+    }
+    difficulty += 0.4*Game.time/60.0;
 
     scroll += speed;
     if (scroll > 0.0) {
@@ -116,12 +165,28 @@ class Gather extends Game {
           }
         }
       }
-      for (x in 0...9) {
-        if (Math.random() < Math.min(0.05, difficulty/10.0)) {
-          grid[x][0] = null;
-          continue;
+      if (INITplace >= 0) {
+        var row = INIT[--INITplace];
+        if (row.length == 0) {
+          message(MSGS[--MSGplace]);
+          row = INIT[--INITplace];
         }
-        grid[x][0] = new Piece(x, 0, Std.int(Math.random()*5));
+        if (row != null) {
+          for (x in 0...9) {
+            grid[x][0] = row[x] == -1 ? null : new Piece(x, 0, row[x]);
+          }
+        } else {
+          difficulty = 0.0;
+          score = 0.0;
+        }
+      } else {
+        for (x in 0...9) {
+          if (Math.random() < Math.min(0.04, difficulty/10.0)) {
+            grid[x][0] = null;
+            continue;
+          }
+          grid[x][0] = new Piece(x, 0, Std.int(Math.random()*5));
+        }
       }
       for (e in Game.get("Cursor")) {
         var c: Cursor = cast e;
@@ -129,6 +194,7 @@ class Gather extends Game {
       }
     }
     maxy = 0.0;
+    miny = 480.0;
 
     scoreDisplay.text("" + Std.int(score));
     new Score(score, false);
@@ -314,6 +380,7 @@ class Cursor extends Entity {
   override public function update() {
     pos = Game.main.pos(px, py);
     Game.main.maxy = Math.max(Game.main.maxy, pos.y);
+    Game.main.miny = Math.min(Game.main.miny, pos.y);
 
     if (Game.key.b1_pressed) {
       if (Game.main.grid[px][py] != null) {
