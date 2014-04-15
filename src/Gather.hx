@@ -1,9 +1,5 @@
 //@ ugl.bgcolor = 0xFFFFFF
 
-/*
-  - more colors
-*/
-
 import vault.ugl.*;
 import flash.geom.Rectangle;
 import vault.EMath;
@@ -58,35 +54,29 @@ class Gather extends Game {
 
   static var _ = -1;
   static var MSGS = [
-  "good luck",
-  "group with same number of each color",
-  "use keys to move, space to undo",
-];
+    "good luck",
+    "group with same number of each color",
+    "use keys to move, space to undo",
+  ];
   static var MSGplace = 1000;
   static var INITplace = 1000;
   static var INIT = [
-[],
-
-// moves
-
-[ _, _, _, _, _, _, _, _, _ ],
-[ _, _, _, _, _, _, _, _, _ ],
-[ _, _, _, _, _, _, _, _, _ ],
-[ _, _, _, _, _, 2, 3, 3, _ ],
-[ _, _, _, _, 2, 3, _, _, _ ],
-[ _, _, _, _, 2, _, _, _, _ ],
-[],
-
-// first moves
-[ _, _, _, _, _, _, _, _, _ ],
-[ _, _, _, _, _, _, _, _, _ ],
-[ _, _, _, _, _, _, _, _, _ ],
-[ _, _, _, _, 1, _, _, _, _ ],
-[ _, _, _, _, 1, _, _, _, _ ],
-[ _, _, _, _, 0, _, _, _, _ ],
-[ _, _, _, _, 0, _, _, _, _ ],
-
-];
+    [],
+    [ _, _, _, _, _, _, _, _, _ ],
+    [ _, _, _, _, _, _, _, _, _ ],
+    [ _, _, _, _, _, _, _, _, _ ],
+    [ _, _, _, _, _, 2, 3, 3, _ ],
+    [ _, _, _, _, 2, 3, _, _, _ ],
+    [ _, _, _, _, 2, _, _, _, _ ],
+    [],
+    [ _, _, _, _, _, _, _, _, _ ],
+    [ _, _, _, _, _, _, _, _, _ ],
+    [ _, _, _, _, _, _, _, _, _ ],
+    [ _, _, _, _, 1, _, _, _, _ ],
+    [ _, _, _, _, 1, _, _, _, _ ],
+    [ _, _, _, _, 0, _, _, _, _ ],
+    [ _, _, _, _, 0, _, _, _, _ ],
+  ];
 
   var lastmsg: Text;
   function message(m: String) {
@@ -141,8 +131,8 @@ class Gather extends Game {
     if (maxy < 240) {
       speed *= 1 + 9*(240 - maxy)/70.0;
     }
-    if (MSGplace >= 0 && miny < 122) {
-      speed *= 1 + 19*(240 - miny)/172.0;
+    if (MSGplace > 0 && miny < 122) {
+      speed *= 1 + 15*(240 - miny)/172.0;
     }
     difficulty += 0.4*Game.time/60.0;
 
@@ -237,22 +227,20 @@ class Piece extends Entity {
     art.clear();
     var c = Game.main.COLORS[color];
 
-    var s = 4;
-    art.size(4, 9, 9).obj([c, 0x000000, 0xFFFFFF, 0x444444], "
-    311111113
+    art.size(4, 9, 9).obj([c, 0x000000, 0x444444, 0xFFFFFF], "
+    211111112
     100000001
-    102202201
-    102202201
-    100000001
+    103303301
+    103303301
     100000001
     100000001
     100000001
-    311111113
-        ");
+    211111112");
 
     var t = eye.distance(pos);
     t.normalize();
     t.mul(0.5);
+    var s = 4;
     gfx.fill(0x000000).rect(Math.round(s*(2.5 + t.x)), Math.round(s*(2.5 + t.y)), s, s);
     gfx.fill(0x000000).rect(Math.round(s*(5.5 + t.x)), Math.round(s*(2.5 + t.y)), s, s);
 
