@@ -1,7 +1,10 @@
 //@ ugl.bgcolor = 0xFFFFFF
 
 /*
+  - initial board example
   - pieces look randomly and at the cursor when close
+  - score
+  - sound
 */
 
 import vault.ugl.*;
@@ -12,6 +15,7 @@ import vault.ugl.PixelArt.C;
 
 class Gather extends Game {
   var scroll: Float;
+  var difficulty: Float;
   public var maxy: Float;
   static public function main() {
     Game.debug = true;
@@ -55,6 +59,7 @@ class Gather extends Game {
 
   override public function begin() {
     new Frame();
+    difficulty = 0.0;
     scroll = 0.0;
     grid = new Array<Array<Piece>>();
     for (x in 0...9) {
@@ -76,10 +81,12 @@ class Gather extends Game {
   }
 
   override public function update() {
-    var speed = Game.time*10;
+    var speed = Game.time*5*(1 + difficulty);
     if (maxy < 240) {
-      speed *= 1 + 5*(240 - maxy)/70.0;
+      speed *= 1 + 9*(240 - maxy)/70.0;
     }
+    difficulty += 0.1*Game.time/60.0;
+    trace(difficulty);
 
     scroll += speed;
     if (scroll > 0.0) {
@@ -183,7 +190,18 @@ class Piece extends Entity {
     targeted = false;
   }
 
+  public function see(v: Vec2) {
+    eye = v.copy();
+    draw();
+  }
+
   override public function update() {
+    if (Math.random() < 1.0/(10*11*9)) {
+      eye.x = Math.random()*480;
+      eye.y = Math.random()*480;
+      draw();
+    }
+
     pos = Game.main.pos(px, py);
     if (pos.y >= 480) {
       remove();
@@ -196,6 +214,7 @@ class Piece extends Entity {
         remove();
       }
     } else if (targeted) {
+      eye = pos;
       var ns = Math.max(0.5, size - Game.time/0.3);
       if (ns != size) {
         size = ns;
@@ -256,7 +275,6 @@ class Cursor extends Entity {
       mv = EMath.max(mv, c);
       if (c > 0) cnt += 1;
     }
-    trace(counts);
     if (cnt <= 1) return;
     if (mv <= 1) return;
     for (c in counts) {
@@ -299,6 +317,12 @@ class Cursor extends Entity {
     }
 
     if (!head) return;
+
+    if (px > 0 && Game.main.grid[px-1][py] != null) Game.main.grid[px-1][py].see(pos);
+    if (px < 8 && Game.main.grid[px+1][py] != null) Game.main.grid[px+1][py].see(pos);
+    if (py > 0 && Game.main.grid[px][py-1] != null) Game.main.grid[px][py-1].see(pos);
+    if (py < 10 && Game.main.grid[px][py+1] != null) Game.main.grid[px][py+1].see(pos);
+
     // try to move
     var tx = px;
     var ty = py;
