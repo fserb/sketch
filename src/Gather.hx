@@ -131,7 +131,7 @@ class Gather extends Game {
     if (maxy < 240) {
       speed *= 1 + 9*(240 - maxy)/70.0;
     }
-    if (MSGplace > 0 && miny < 122) {
+    if (miny < 122) {
       speed *= 1 + 15*(240 - miny)/172.0;
     }
     difficulty += 0.4*Game.time/60.0;
