@@ -18,7 +18,7 @@ class Gather extends Game {
   public var maxy: Float;
   public var miny: Float;
   static public function main() {
-    Game.debug = true;
+    // Game.debug = true;
     Game.baseColor = 0x000000;
     new Gather("Gather", "");
   }
