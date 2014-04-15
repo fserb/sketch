@@ -1,10 +1,8 @@
 //@ ugl.bgcolor = 0xFFFFFF
 
 /*
-  - sound
   - initial board example
   - more colors
-  - holes
 */
 
 import vault.ugl.*;
@@ -49,14 +47,7 @@ class Gather extends Game {
   }
 
   override public function end() {
-    return;
-    for (e in Game.get("Cursor")) {
-      var c: Cursor = cast e;
-      if (c.py < 11 && Game.main.grid[c.px][c.py] != null) {
-        Game.main.grid[c.px][c.py].untarget();
-      }
-      c.remove();
-    }
+    new Sound(30).explosion().cache("end game").play();
   }
 
   public function pos(x: Int, y: Int): Vec2 {
@@ -94,6 +85,7 @@ class Gather extends Game {
   public function addScore(f: Float) {
     score += f;
     Game.shake(0.25);
+    new Sound(12).coin().cache("score").play();
     new Text().size(1).color(0x000000).xy(245 + scoreDisplay.sprite.width/2.0, 25)
       .align(MIDDLE_LEFT).move(40, 0).duration(0.5).text("+" + Std.int(f));
   }
@@ -103,7 +95,7 @@ class Gather extends Game {
     if (maxy < 240) {
       speed *= 1 + 9*(240 - maxy)/70.0;
     }
-    difficulty += 0.2*Game.time/60.0;
+    difficulty += 0.5*Game.time/60.0;
 
     scroll += speed;
     if (scroll > 0.0) {
@@ -125,7 +117,10 @@ class Gather extends Game {
         }
       }
       for (x in 0...9) {
-        if (Math.random() < 0.01) continue;
+        if (Math.random() < Math.min(0.05, difficulty/10.0)) {
+          grid[x][0] = null;
+          continue;
+        }
         grid[x][0] = new Piece(x, 0, Std.int(Math.random()*5));
       }
       for (e in Game.get("Cursor")) {
@@ -137,7 +132,6 @@ class Gather extends Game {
 
     scoreDisplay.text("" + Std.int(score));
     new Score(score, false);
-
   }
 }
 
@@ -218,7 +212,8 @@ class Piece extends Entity {
     }
 
     pos = Game.main.pos(px, py);
-    if (pos.y >= 480) {
+    if (pos.y > 484) {
+
       remove();
     }
 
@@ -308,6 +303,7 @@ class Cursor extends Entity {
       if (p == null) continue;
       p.pop();
     }
+    new Sound(25).explosion().cache("gather").play();
     Game.main.scoreColors.go();
   }
 
@@ -362,6 +358,8 @@ class Cursor extends Entity {
     }
 
     if (tx != px || ty != py) {
+      new Sound(12).jump().cache("move").play();
+
       new Cursor(tx, ty);
       Game.main.grid[tx][ty].target();
       head = false;
