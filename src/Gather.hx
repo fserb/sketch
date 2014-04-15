@@ -1,28 +1,36 @@
 //@ ugl.bgcolor = 0xFFFFFF
 
 /*
-  - initial board example
-  - pieces look randomly and at the cursor when close
-  - score
   - sound
+  - initial board example
+  - more colors
+  - holes
 */
 
 import vault.ugl.*;
 import flash.geom.Rectangle;
 import vault.EMath;
 import vault.Vec2;
+import vault.Ease;
 import vault.ugl.PixelArt.C;
 
 class Gather extends Game {
+  public var COLORS = [ 0xff6819, 0xc0dc61, 0x1ebed8, 0xfec804, 0xe284cc ];
+
+  var score: Float;
+  var scoreDisplay: Text;
   var scroll: Float;
   var difficulty: Float;
+  public var scoreColors: ScoreAnim;
   public var maxy: Float;
   static public function main() {
-    Game.debug = true;
+    // Game.debug = true;
     Game.baseColor = 0x000000;
     new Gather("Gather", "");
   }
   override public function final() {
+    new Score(score, true);
+    scoreColors.reset();
     Game.mouse.clear();
     Game.key.clear();
     Game.shake(1.0);
@@ -59,7 +67,10 @@ class Gather extends Game {
 
   override public function begin() {
     new Frame();
+    scoreColors = new ScoreAnim();
     difficulty = 0.0;
+    score = 0.0;
+    scoreDisplay = new Text().color(0x222222).size(3).xy(240, 25);
     scroll = 0.0;
     grid = new Array<Array<Piece>>();
     for (x in 0...9) {
@@ -80,13 +91,19 @@ class Gather extends Game {
     new Cursor(4, 5);
   }
 
+  public function addScore(f: Float) {
+    score += f;
+    Game.shake(0.25);
+    new Text().size(1).color(0x000000).xy(245 + scoreDisplay.sprite.width/2.0, 25)
+      .align(MIDDLE_LEFT).move(40, 0).duration(0.5).text("+" + Std.int(f));
+  }
+
   override public function update() {
     var speed = Game.time*5*(1 + difficulty);
     if (maxy < 240) {
       speed *= 1 + 9*(240 - maxy)/70.0;
     }
-    difficulty += 0.1*Game.time/60.0;
-    trace(difficulty);
+    difficulty += 0.2*Game.time/60.0;
 
     scroll += speed;
     if (scroll > 0.0) {
@@ -108,6 +125,7 @@ class Gather extends Game {
         }
       }
       for (x in 0...9) {
+        if (Math.random() < 0.01) continue;
         grid[x][0] = new Piece(x, 0, Std.int(Math.random()*5));
       }
       for (e in Game.get("Cursor")) {
@@ -116,6 +134,10 @@ class Gather extends Game {
       }
     }
     maxy = 0.0;
+
+    scoreDisplay.text("" + Std.int(score));
+    new Score(score, false);
+
   }
 }
 
@@ -153,14 +175,7 @@ class Piece extends Entity {
 
   function draw() {
     art.clear();
-    var c = switch (color) {
-      case 0: 0xff6819;
-      case 1: 0xc0dc61;
-      case 2: 0x1ebed8;
-      case 3: 0xfec804;
-      case 4: 0xe284cc;
-      default: 0xFFFFFF;
-    };
+    var c = Game.main.COLORS[color];
 
     var s = 4;
     art.size(4, 9, 9).obj([c, 0x000000, 0xFFFFFF, 0x444444], "
@@ -245,18 +260,18 @@ class Cursor extends Entity {
   }
 
   function draw() {
-    var cols = head ? [ 0xFF6666, 0xFF9999, 0xFFFFFF ] :
-                      [ 0x666666, 0x999999, 0xFFFFFF ];
+    var cols = head ? [ 0xFF6666, 0xFF9999 ] :
+                      [ 0x666666, 0x999999 ];
     art.clear().size(4, 9, 9).obj( cols, "
-100222001
+100...001
 0.......0
 0.......0
-2.......2
-2.......2
-2.......2
+.........
+.........
+.........
 0.......0
 0.......0
-100222001
+100...001
       ");
   }
 
@@ -268,6 +283,8 @@ class Cursor extends Entity {
       if (p == null) continue;
       counts[p.color] += 1;
     }
+
+    Game.main.scoreColors.set(counts);
 
     var mv = 0;
     var cnt = 0;
@@ -282,7 +299,6 @@ class Cursor extends Entity {
     }
 
     // passed
-    Game.shake(0.3);
     for (e in Game.get("Cursor")) {
       var c: Cursor = cast e;
       if (!c.head) {
@@ -292,6 +308,7 @@ class Cursor extends Entity {
       if (p == null) continue;
       p.pop();
     }
+    Game.main.scoreColors.go();
   }
 
   public function pop() {
@@ -308,6 +325,7 @@ class Cursor extends Entity {
         remove();
       } else {
         head = true;
+        Game.main.scoreColors.reset();
         draw();
       }
     }
@@ -353,6 +371,74 @@ class Cursor extends Entity {
   }
 }
 
+class ScoreAnim extends Entity {
+  static var layer = 101;
+  var moving = false;
+  var values: Array<Int> = null;
+  var score = 0.0;
+
+  public function reset() {
+    set([0,0,0,0,0]);
+  }
+
+  public function set(v: Array<Int>) {
+    values = v;
+    var g = gfx.cache(v[0] + v[1]*10 + v[2]*100 + v[3]*1000 + v[4]*10000);
+    var l = 0;
+    var order = [0,1,2,3,4];
+    order.sort(function(a, b) {
+      if (v[a] < v[b]) return 1;
+      if (v[a] > v[b]) return -1;
+      return 0;
+    });
+
+    for (i in order) {
+      var c = v[i];
+      if (c == 0) continue;
+      g.fill(Game.main.COLORS[i]);
+      for (j in 0...c) {
+        g.rect(j*8, l*8, 7, 7);
+      }
+      l += 1;
+    }
+  }
+
+  public function go() {
+    Game.main.scoreColors = new ScoreAnim();
+    moving = true;
+    ticks = 0.0;
+
+    var cnt = 0;
+    var pieces = 0;
+    for (v in values) {
+      if (v != 0) {
+        cnt += 1;
+        pieces = v;
+      }
+    }
+
+    score = cnt*pieces*(pieces - 1)*(cnt - 1)*(1 + Game.main.difficulty);
+  }
+
+  override public function begin() {
+    alignment = MIDDLELEFT;
+    pos.x = 50;
+    pos.y = 25;
+  }
+
+  override public function update() {
+    if (!moving) return;
+
+    var t = ticks/0.3;
+    pos.x = 50 + 190*Ease.quadIn(t);
+    sprite.alpha = 1.0 - Ease.quadIn(t);
+    if (t > 1.0) {
+      Game.main.addScore(score);
+      remove();
+    }
+  }
+}
+
 class Frame extends Entity {
   static var layer = 100;
   override public function begin() {
@@ -361,8 +447,16 @@ class Frame extends Entity {
     gfx.fill(0xFFFFFF)
       .rect(0, 468, 480, 12)
       .rect(0, 0, 480, 50)
-      .fill(null).line(1, 0xAAAAAA)
+      .fill(null).line(1, 0x000000)
       .mt(50, 50).lt(420, 50)
       .mt(50, 468).lt(420, 468);
+    var g = gfx.gfx();
+    g.lineStyle(1.0, 0x000000, 0.25);
+    g.moveTo(50, 51); g.lineTo(420, 51);
+    g.moveTo(50, 467); g.lineTo(420, 467);
+    g.lineStyle(1.0, 0x000000, 0.12);
+    g.moveTo(50, 52); g.lineTo(420, 52);
+    g.moveTo(50, 466); g.lineTo(420, 466);
   }
 }
+
