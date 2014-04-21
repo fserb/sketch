@@ -6,6 +6,7 @@ import vault.Vec2;
 
 class Avoid extends Game {
   static public function main() {
+    Game.debug = true;
     new Avoid("Avoid", "");
   }
 

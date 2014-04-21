@@ -10,7 +10,7 @@ class Up extends Game {
   var display: Text;
   var adds: Float;
   static public function main() {
-    // Game.debug = true;
+    Game.debug = true;
     new Up("Up", "");
   }
 
