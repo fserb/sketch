@@ -25,7 +25,7 @@ for f in $SOURCE; do
     if [ $? == 0 ]; then
       cp bin/html5/bin/index.html "$TARGET/$N/"
       uglifyjs bin/html5/bin/$N.js -c -m > "$TARGET/$N/$N.js" 2>/dev/null
-      cp bin/html5/bin/howler.min.js "$TARGET/$N/"
+      cp bin/html5/bin/soundjs.min.js "$TARGET/$N/"
     fi
   else
     N=`echo "$f" | cut -c 5- | rev | cut -c 4- | rev`
