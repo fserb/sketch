@@ -396,9 +396,9 @@ class Cursor extends Entity {
     var tx = px;
     var ty = py;
     if (Game.key.up_pressed) ty -= 1;
-    if (Game.key.down_pressed) ty += 1;
-    if (Game.key.left_pressed) tx -= 1;
-    if (Game.key.right_pressed) tx += 1;
+    else if (Game.key.down_pressed) ty += 1;
+    else if (Game.key.left_pressed) tx -= 1;
+    else if (Game.key.right_pressed) tx += 1;
     // not allowed outside
     if (tx < 0 || tx >= 9 || ty < 0 || ty >= 11) {
       tx = px; ty = py;
