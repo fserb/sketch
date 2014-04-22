@@ -133,8 +133,8 @@ class Player extends Entity {
     p.push(new Vec2(24, 12));
     p.push(new Vec2(0, 24));
     addHitBox(Polygon(p));
-    sndExp = new Sound(1032).explosion();
-    sndBullet = new Sound(1008).laser();
+    sndExp = new Sound(1032).explosion().cache("player-exp");
+    sndBullet = new Sound(1008).laser().cache("player-bullet");
   }
 
   public var reload = 0.0;
@@ -190,7 +190,7 @@ class Bullet extends Entity {
 
     gfx.fill(fromPlayer ? 0xFFFFFF : 0x000000)
       .mt(0, 3).lt(10, 0).lt(14, 0).lt(14, 6).lt(10, 6).lt(0, 3);
-    sndExp = new Sound(1002).explosion();
+    sndExp = new Sound(1002).explosion().cache("bullet-exp");
     angle = src.angle;
     pos.x = src.pos.x + 10*Math.cos(angle);
     pos.y = src.pos.y + 10*Math.sin(angle);
@@ -242,7 +242,7 @@ class Ball extends Entity {
     vel.length = 100;
     vel.angle = 2*Math.PI*Math.random();
     addHitBox(Circle(size, size, size));
-    sndExp = new Sound(1010).explosion();
+    sndExp = new Sound(1010).explosion().cache("ball-exp");
   }
 
   override public function update() {
@@ -305,8 +305,8 @@ class Enemy extends Entity {
 
     findTarget();
     angle = target.distance(pos).angle;
-    sndExp = new Sound(1005).explosion();
-    sndBullet = new Sound(1006).laser();
+    sndExp = new Sound(1005).explosion().cache("enemy-exp");
+    sndBullet = new Sound(1006).laser().cache("enemy-bullet");
   }
 
   function findTarget() {
