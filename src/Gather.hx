@@ -17,6 +17,7 @@ class Gather extends Game {
   public var scoreColors: ScoreAnim;
   public var maxy: Float;
   public var miny: Float;
+  var sndExp: Sound;
   static public function main() {
     // Game.debug = true;
     Game.baseColor = 0x000000;
@@ -43,7 +44,7 @@ class Gather extends Game {
   }
 
   override public function end() {
-    new Sound(30).explosion().cache("end game").play();
+    sndExp.play();
   }
 
   public function pos(x: Int, y: Int): Vec2 {
@@ -88,6 +89,7 @@ class Gather extends Game {
     MSGplace = MSGplace >= 0 ? MSGS.length : -1;
     INITplace = INITplace >= 0 ? INIT.length : -1;
     if (Game.debug) MSGplace = INITplace = -1;
+    sndExp = new Sound(30).explosion().cache("end game");
     lastmsg = null;
     new Frame();
     scoreColors = new ScoreAnim();
