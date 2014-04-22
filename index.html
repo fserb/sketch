@@ -1,0 +1,35 @@
+<html>
+<head>
+<script src="/live.js"></script>
+<style>
+body {
+  padding: 0;
+  margin: 0;
+  background-color: #888;
+}
+
+#arena {
+  display: block;
+  margin: 80px auto;
+  border: 0;
+}
+</style>
+</head>
+<body>
+
+<iframe id='arena' width='480px' height='480px' src='bin/html5/bin/index.html'></iframe>
+
+<script>
+  var arena = document.getElementById("arena");
+  arena.addEventListener("load", function() {
+    arena.contentWindow.focus();
+
+    arena.contentWindow.addEventListener("keydown", function(ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+    });
+  });
+</script>
+
+</body>
+</html>
