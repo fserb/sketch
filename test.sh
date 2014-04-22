@@ -7,7 +7,7 @@ ERROR=0
 for f in src/*; do
   echo "$f"
   ./select.py "$f"
-  lime build flash
+  lime build html5
   if [ $? != 0 ]; then ERROR=1; fi
 done
 
