@@ -115,7 +115,7 @@ class Note extends Entity {
     pos.x = 500;
     pos.y = 80;
     addHitBox(Rect(0, 0, 20, 20));
-    snd = new Sound(0).blip();
+    snd = new Sound("note").blip(0);
   }
 
   override public function update() {
@@ -214,7 +214,7 @@ class Tomato extends Entity {
         .size(10, 5).speed(0, vel.length/2.0)
         .delay(0).duration(0.5, 0.5);
       remove();
-      new Sound(16).explosion().play();
+      new Sound("tomato").explosion(16).play();
       Game.endGame();
     }
 
@@ -245,7 +245,7 @@ class Coin extends Entity {
     if (hit(Game.main.player)) {
       Game.main.score += value;
       new Text().text("$" + value).duration(1).xy(pos.x, pos.y).move(0, -20);
-      new Sound(12).coin().play();
+      new Sound("coin").coin(12).play();
       remove();
     }
 

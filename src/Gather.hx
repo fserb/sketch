@@ -89,7 +89,7 @@ class Gather extends Game {
     MSGplace = MSGplace >= 0 ? MSGS.length : -1;
     INITplace = INITplace >= 0 ? INIT.length : -1;
     if (Game.debug) MSGplace = INITplace = -1;
-    sndExp = new Sound(30).explosion().cache("end game");
+    sndExp = new Sound("end game").explosion(30);
     lastmsg = null;
     new Frame();
     scoreColors = new ScoreAnim();
@@ -123,7 +123,7 @@ class Gather extends Game {
   public function addScore(f: Float) {
     score += f;
     Game.shake(0.25);
-    new Sound(12).coin().cache("score").play();
+    new Sound("score").coin(12).play();
     new Text().size(1).color(0x000000).xy(245 + scoreDisplay.sprite.width/2.0, 25)
       .align(MIDDLE_LEFT).move(40, 0).duration(0.5).text("+" + Std.int(f));
   }
@@ -359,7 +359,7 @@ class Cursor extends Entity {
       if (p == null) continue;
       p.pop();
     }
-    new Sound(25).explosion().cache("gather").play();
+    new Sound("gather").explosion(25).play();
     Game.main.scoreColors.go();
   }
 
@@ -415,7 +415,7 @@ class Cursor extends Entity {
     }
 
     if (tx != px || ty != py) {
-      new Sound(12).jump().cache("move").play();
+      new Sound("move").jump(12).play();
 
       new Cursor(tx, ty);
       Game.main.grid[tx][ty].target();

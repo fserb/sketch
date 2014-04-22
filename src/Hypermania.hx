@@ -36,7 +36,7 @@ class Hypermania extends Game {
     wave = null;
     waveCount = 0;
     score = 0.0;
-    sndBegin = new Sound(8428).powerup();
+    sndBegin = new Sound("begin").powerup(8428);
     beginLevel();
   }
 
@@ -77,7 +77,7 @@ class Hypermania extends Game {
     waveCount += 1;
     wave = null;
     var cnter = 0.0;
-    var sndReload = new Sound(1345).explosion().vol(0.1);
+    var sndReload = new Sound("level reload").vol(0.1).explosion(1345);
     new Timer().run(function() {
       var oe = energy;
       energy = Math.max(1, energy - Game.time*100/1.5);
@@ -135,13 +135,13 @@ class Player extends Entity {
     pos.x = 240;
     pos.y = 480 - 80 - 18;
     addHitBox(Rect(0, 0, 24, 36));
-    sndBullet = new Sound(1350).laser();
+    sndBullet = new Sound("player bullet").laser(1350);
   }
 
   public function explode() {
     if (bullet != null) bullet.remove();
     remove();
-    new Sound(1344).explosion().play();
+    new Sound("player explode").explosion(1344).play();
     new Particle().xy(pos.x, pos.y).color(0xFFFFFF)
       .count(80).size(6).speed(20, 50).duration(1.5);
     Game.shake(1.0);
@@ -436,8 +436,8 @@ class Enemy extends Entity {
     pos.y = args[2].y;
     wave = args[4];
     addHitBox(Rect(0, 0, 30, 24));
-    sndBullet = new Sound(1403).laser().cache("enemy-bullet");
-    sndExplode = new Sound(1345).explosion().cache("enemy-explode");
+    sndBullet = new Sound("enemy bullet").laser(1403);
+    sndExplode = new Sound("enemy explode").explosion(1345);
   }
 
   function draw(?c: Int = 0x000000) {

@@ -236,7 +236,7 @@ class Player extends Entity {
     facing = 0;
     cooldown = 0.0;
     addHitBox(Rect(0, 0, 16, 16));
-    jumpsnd = new Sound(4).jump();
+    jumpsnd = new Sound("player jump").jump(4);
   }
 
   public function door() {
@@ -450,7 +450,7 @@ class Bot extends Entity {
 
     if (Game.main.player != null &&
         hit(Game.main.player) && Game.main.player.leaving < 0) {
-      new Sound(2).explosion().play();
+      new Sound("player explode").explosion(2).play();
       Game.endGame();
     }
   }
@@ -477,7 +477,7 @@ class Gate extends Entity {
     }
     if (unlocked && Game.main.player != null &&
         Game.main.player.leaving <= 0 && hit(Game.main.player)) {
-      new Sound(3).powerup().play();
+      new Sound("gate").powerup(3).play();
       Game.main.player.door();
     }
   }
@@ -494,7 +494,7 @@ class Key extends Entity {
     if (Game.main.player != null && hit(Game.main.player)) {
       remove();
       Game.main.gate.open();
-      new Sound(12).coin().play();
+      new Sound("key").coin(12).play();
     }
   }
 }
