@@ -20,9 +20,84 @@ body {
 <iframe id='arena' width='480px' height='480px' src='bin/html5/bin/index.html'></iframe>
 
 <script>
+if (!window.requestAnimationFrame) {
+  window.requestAnimationFrame =
+    window.webkitRequestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.oRequestAnimationFrame ||
+    window.msRequestAnimationFrame ||
+    function(callback) { window.setTimeout( callback, 1000 / 60 ); };
+}
+
+var gpX = 0.0;
+var gpY = 0.0;
+var gpButtons = [false, false];
+
+var gpUpdateAxis = function (value, horizontal) {
+  if (Math.abs(value) < 0.1) {
+    return;
+  }
+  if (horizontal) {
+    gpX = value;
+  } else {
+    gpY = value;
+  }
+}
+
+var gpFlash = null;
+var gpBase = (Math.sqrt(2) - 1)*(Math.sqrt(2) - 1);
+
+var gpSend = function() {
+  if (gpFlash != null && gpFlash.uglJoystick) {
+    var x = gpX;
+    var y = gpY;
+    var l = Math.sqrt(x*x + y*y);
+    mul = 1 + Math.sqrt(l*gpBase);
+    x *= mul;
+    y *= mul;
+    gpFlash.uglJoystick(x, y, gpButtons[0], gpButtons[1]);
+  }
+  gpX = 0.0;
+  gpY = 0.0;
+};
+
+var gpInit = function() {
+  var gamepadAvailable = !! navigator.webkitGetGamepads || !! navigator.webkitGamepads || (navigator.userAgent.indexOf('Firefox/') != -1);
+  if (gamepadAvailable) {
+    gpTick();
+  }
+};
+
+var gpTick = function() {
+  var rawGamepads = (navigator.webkitGetGamepads && navigator.webkitGetGamepads()) || navigator.webkitGamepads;
+  if (!rawGamepads) {
+    return window.requestAnimationFrame(gpTick);
+  }
+
+  for (var i = 0; i < rawGamepads.length; i++) {
+    var gp = rawGamepads[i];
+    if (!gp) continue;
+    gpUpdateAxis(gp.axes[0], true);
+    gpUpdateAxis(gp.axes[1], false);
+    gpUpdateAxis(gp.axes[2], true);
+    gpUpdateAxis(gp.axes[3], false);
+    if (gp.buttons[12]) gpUpdateAxis(-1, false);
+    if (gp.buttons[13]) gpUpdateAxis(1, false);
+    if (gp.buttons[14]) gpUpdateAxis(-1, true);
+    if (gp.buttons[15]) gpUpdateAxis(1, true);
+    gpButtons[0] = gp.buttons[0] != 0 || gp.buttons[3] != 0;
+    gpButtons[1] = gp.buttons[1] != 0 || gp.buttons[2] != 0;
+  }
+  gpSend();
+  return window.requestAnimationFrame(gpTick);
+}
+
+
   var arena = document.getElementById("arena");
   arena.addEventListener("load", function() {
     arena.contentWindow.focus();
+    gpFlash = arena.contentWindow.document.getElementById("openfl-embed");
+    gpInit();
 
     arena.contentWindow.addEventListener("keydown", function(ev) {
       ev.preventDefault();
