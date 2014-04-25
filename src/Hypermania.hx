@@ -21,7 +21,6 @@ class Hypermania extends Game {
   var sndBegin: Sound;
 
   static public function main() {
-    // Game.debug = true;
     new Hypermania("Hypermania", "");
   }
 
@@ -103,13 +102,15 @@ class Hypermania extends Game {
       player.explode();
     }
 
-    if (Game.debug && Game.key.b2_pressed) {
-      wave.remove();
-      for (e in Game.get("Enemy")) {
-        e.remove();
+    #if debug
+      if (Game.key.b2_pressed) {
+        wave.remove();
+        for (e in Game.get("Enemy")) {
+          e.remove();
+        }
+        nextLevel();
       }
-      nextLevel();
-    }
+    #end
     new Score(score, false);
   }
 }

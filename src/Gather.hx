@@ -19,7 +19,6 @@ class Gather extends Game {
   public var miny: Float;
   var sndExp: Sound;
   static public function main() {
-    // Game.debug = true;
     Game.baseColor = 0x000000;
     new Gather("Gather", "");
   }
@@ -88,7 +87,9 @@ class Gather extends Game {
   override public function begin() {
     MSGplace = MSGplace >= 0 ? MSGS.length : -1;
     INITplace = INITplace >= 0 ? INIT.length : -1;
-    if (Game.debug) MSGplace = INITplace = -1;
+    #if debug
+      MSGplace = INITplace = -1;
+    #end
     sndExp = new Sound("end game").explosion(30);
     lastmsg = null;
     new Frame();

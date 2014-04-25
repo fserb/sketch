@@ -11,10 +11,10 @@ if [ "$1" != "" ]; then
 fi
 
 for f in $SOURCE; do
-  ./select.py "$f"
-  D=`cat "$f" | grep -v "//" | grep "Game.debug ="`
+  ./select.py "$f" "prod"
+  N=`echo "$f" | cut -c 5- | rev | cut -c 4- | rev`
+  D=`cat "$f" | grep "//@ *ugl.skip"`
   if [ "$D" == "" ]; then
-    N=`echo "$f" | cut -c 5- | rev | cut -c 4- | rev`
     echo "$N"
     mkdir -p "$TARGET/$N"
     lime build flash
@@ -28,8 +28,7 @@ for f in $SOURCE; do
       cp bin/html5/bin/soundjs.min.js "$TARGET/$N/"
     fi
   else
-    N=`echo "$f" | cut -c 5- | rev | cut -c 4- | rev`
-    echo "$N: skipped because it contains debug info."
+    echo "$N: skipped."
   fi
 done
 

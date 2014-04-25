@@ -1,3 +1,4 @@
+//@ ugl.skip
 // based on Aba Games' Satellite Catch
 
 import vault.Rand;
@@ -6,7 +7,6 @@ import vault.Vec2;
 
 class Avoid extends Game {
   static public function main() {
-    Game.debug = true;
     new Avoid("Avoid", "");
   }
 

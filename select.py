@@ -15,11 +15,21 @@ def main(args):
     "bgcolor": 0x000000,
     "haxelib": [] }
 
+  params['debug'] = '<haxedef name="debug" />'
+  if len(args) >= 3:
+    if args[2] == 'prod':
+      params['debug'] = ''
+    elif args[2] == 'debugfps':
+      params['debug'] += '\n  <haxedef name="debugfps" />'
+
   for l in file("src/" + prj + ".hx"):
     ls = l.strip()
     if not ls: continue
     if not ls.startswith("//@"): break
-    p = re.findall(r"//@ ugl\.(\S+) = (\S+)$", ls)[0]
+    try:
+      p = re.findall(r"//@ ugl\.(\S+) = (\S+)$", ls)[0]
+    except IndexError:
+      continue
     if (p[0] in ['haxelib']):
       params[p[0]].append(p[1])
     else:
@@ -50,6 +60,7 @@ PROJECT = """
   <haxelib name="vault" />
   <haxelib name="openfl" />
   %(haxelib)s
+  %(debug)s
 </project>
 """
 

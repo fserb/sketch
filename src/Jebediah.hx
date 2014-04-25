@@ -1,5 +1,5 @@
 //@ ugl.bgcolor = 0x000000
-
+//@ ugl.skip
 
 // TODO:
 
@@ -11,7 +11,6 @@ import vault.ugl.PixelArt.C;
 
 class Jebediah extends Game {
   static public function main() {
-    Game.debug = true;
     new Jebediah("Jebediah's Revenge", "");
   }
 

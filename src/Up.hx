@@ -1,3 +1,4 @@
+//@ ugl.skip
 // based on Aba Games' WASD THRUST
 
 import vault.ugl.*;
@@ -10,7 +11,6 @@ class Up extends Game {
   var display: Text;
   var adds: Float;
   static public function main() {
-    Game.debug = true;
     new Up("Up", "");
   }
 
