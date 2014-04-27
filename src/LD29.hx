@@ -8,9 +8,6 @@ Beneath the surface
 
 TODO
 ====
-- spawn more enemies with time
-- make enemies colide with each other
-- event sequence
 - score
 - sound
 */
@@ -30,6 +27,7 @@ class C {
   static public var white = 0xFFFFFF;
   static public var black = 0x1C140D;
   static public var green = 0xCBE86B;
+  static public var lightgreen = 0xe6e9bc;
   static public var purple = 0x936be8; // 0xdf9bea; // 0xF2E9E1;
   static public var red = 0xd7364e;
   static public var blue = 0x6baee8;
@@ -59,15 +57,18 @@ class LD29 extends Game {
   override public function begin() {
     new Grid();
     new Train(Game.one("Station"));
-    #if !debug
-    Message.chain(["So you are a train",
-                   "Walk around the stations",
-                   "You can chain movements with up and down",
-                   "Don't hit other trains",
-                   "Try to do the missions"]);
-    #end
+
+    Message.chain(["you are a train" ]);
+
+    new Timer().delay(5).run(function() {
+      mission = new Mission();
+      return true;
+    });
 
     enemies = 0;
+  }
+
+  public function newMission() {
     new Timer().delay(10).run(function() {
       mission = new Mission();
       return true;
@@ -172,6 +173,8 @@ class Mission extends Entity {
       pos.y = 440 + 60*Ease.cubicOut(1.0 - Math.min(1.0, end));
       if (end <= 0.0) {
         remove();
+        Game.main.newMission();
+        return;
       }
       ticks -= Game.time;
     }
@@ -354,11 +357,11 @@ class Train extends Entity {
     pos.x = to.pos.x;
     pos.y = to.pos.y;
     angle = to.pos.distance(from.pos).angle;
-    current = new Selection(from, to, C.green);
-    sel = new Selection(to, to.conn[0], C.green);
+    current = new Selection(from, to, C.lightgreen);
+    sel = new Selection(to, to.conn[0], C.lightgreen);
     path = new List<Selection>();
     selectPush();
-    gfx.fill(C.white).line(2, C.green).rect(0, 0, 34, 16);
+    gfx.fill(C.green).rect(0, 0, 34, 16);
     addHitBox(Rect(0, 0, 34, 16));
   }
 
@@ -369,7 +372,7 @@ class Train extends Entity {
   }
 
   function selectPush() {
-    var c2 = new Selection(sel.from, sel.to, C.green);
+    var c2 = new Selection(sel.from, sel.to, C.lightgreen);
     path.add(c2);
     head = c2.to;
     var last = path.last();
@@ -399,6 +402,9 @@ class Train extends Entity {
     angle += da;
 
     var acc = ACCSPEED;
+    if (Game.key.b1) {
+      acc = 0.0;
+    }
 
     // break when getting closer to the station
     // acc *= Math.max(0.2, Math.min(1.0, to.pos.distance(pos).length/25.0));
@@ -424,10 +430,10 @@ class Train extends Entity {
 
     if (Game.key.left_pressed) select(selection - 1);
     if (Game.key.right_pressed) select(selection + 1);
-    if (Game.key.up_pressed || Game.key.b1_pressed) {
+    if (Game.key.up_pressed) {
       selectPush();
     }
-    if (Game.key.down_pressed || Game.key.b2_pressed) {
+    if (Game.key.down_pressed) {
       if (path.length > 0) {
         var x = path.last();
         path.remove(x);
