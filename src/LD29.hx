@@ -5,10 +5,6 @@ Beneath the surface
 ===================
 
 - control a single train
-- take passangers
-- collide with other trains?
-- missions:
-  - take passanger Y to station Z in X seconds
 
 TODO
 ====
@@ -58,6 +54,7 @@ class LD29 extends Game {
   }
 
   var mission: Mission;
+  public var enemies = 0;
 
   override public function begin() {
     new Grid();
@@ -65,18 +62,23 @@ class LD29 extends Game {
     #if !debug
     Message.chain(["So you are a train",
                    "Walk around the stations",
-                   "You can chain stations with up and down",
+                   "You can chain movements with up and down",
                    "Don't hit other trains",
-                   "Do the missions"]);
+                   "Try to do the missions"]);
     #end
-    // mission = new MissionStation();
-    mission = new MissionSequence();
+
+    enemies = 0;
+    new Timer().delay(10).run(function() {
+      mission = new Mission();
+      return true;
+      });
   }
 
   public function randomStation(): Station {
     var s: Station = null;
     var i = 1;
     for (e in Game.get("Station")) {
+      if (e.pos.x >= 0 && e.pos.x < 480 && e.pos.y >= 0 && e.pos.y < 480) continue;
       if (s == null || Math.random() < 1.0/i) {
         s = cast e;
       }
@@ -87,6 +89,7 @@ class LD29 extends Game {
 
   function addEnemy() {
     new Enemy(randomStation());
+    enemies++;
   }
 
   override public function update() {
@@ -102,34 +105,62 @@ class LD29 extends Game {
         e.pos.y -= camera.y;
       }
     }
+
+    var targetEnemies = 5*Math.sqrt(Game.totalTime);
+
+    while (enemies < targetEnemies) {
+      addEnemy();
+    }
   }
 }
 
 class Mission extends Entity {
   static var layer = 499;
 
+  var target: TargetStation = null;
+  var target_station: Station;
   var time = 0.0;
   var end = -1.0;
+  var combo = 0;
   var msg = "";
-  function init() {};
-  public function station(s: Station) {};
 
-  override public function begin() {
-    // alignment = TOPLEFT;
-    pos.x = 240;
-    pos.y = 500;
-    init();
+  function getNext(): Float {
+    if (target != null) target.remove();
+    target_station = Game.main.randomStation();
+    target = new TargetStation(target_station);
+    var dist:Vec2 = Game.one("Train").pos.distance(target_station.pos);
+    return dist.length;
   }
 
-  function finish(success: Bool) {
+  override public function begin() {
+    pos.x = 240;
+    pos.y = 500;
+    time = getNext()/20;
+    msg = "Get to the station!";
+  }
+
+  function finish() {
+    target.remove();
     if (end < 0) {
       end = 3.0;
       Game.main.mission = null;
-      if (success) {
-        msg = "Good job!";
+      if (combo <= 1) {
+        msg = "nope";
       } else {
-        msg = "Nope.";
+        msg = "Final combo x" + combo + "!";
       }
+    }
+  }
+
+  public function station(s: Station) {
+    if (s == target_station) {
+      combo++;
+      if (combo == 1) {
+        msg = "Go to the next one!";
+      } else {
+        msg = "Combo x" + combo + "! Next!";
+      }
+      time += getNext()/(20 + 30*combo);
     }
   }
 
@@ -137,8 +168,8 @@ class Mission extends Entity {
     gfx.clear().fill(C.red).rect(0, 0, 270, 30).text(120, 15, msg, C.white, 2);
 
     if (end >= 0.0) {
-      end -= Game.time;
-      pos.y = 440 + 60*Ease.cubicOut((1.0 - Math.min(1.0, end))/0.5);
+      end -= Game.time/0.5;
+      pos.y = 440 + 60*Ease.cubicOut(1.0 - Math.min(1.0, end));
       if (end <= 0.0) {
         remove();
       }
@@ -150,7 +181,7 @@ class Mission extends Entity {
 
     var target = 2*Math.PI - 2*Math.PI*(time - ticks)/time;
     if (target >= 2*Math.PI) {
-      finish(false);
+      finish();
       return;
     }
     gfx.fill(C.white);
@@ -169,6 +200,7 @@ class Mission extends Entity {
 class TargetStation extends Entity {
   static var layer = 400;
   var target: Station;
+
   override public function begin() {
     target = args[0];
   }
@@ -193,47 +225,6 @@ class TargetStation extends Entity {
        .fill(C.red).circle(8, 8, 4);
     }
 
-  }
-}
-
-class MissionSequence extends Mission {
-  static var layer = 499;
-  var remaining = 0;
-
-  override function init() {
-    remaining = 5 + Std.int(7*Math.random());
-    time = remaining;
-    msg = "Reach " + remaining + " stations";
-  }
-
-  override public function station(s: Station) {
-    remaining--;
-    msg = "Reach " + remaining + " stations";
-    if (remaining <= 0) {
-      finish(true);
-    }
-  }
-}
-
-class MissionStation extends Mission {
-  static var layer = 499;
-  var target: TargetStation;
-  var target_station: Station;
-
-  override function init() {
-    target_station = Game.main.randomStation();
-    target = new TargetStation(target_station);
-
-    var dist:Vec2 = Game.one("Train").pos.distance(target_station.pos);
-    time = dist.length/50;
-    msg = "Get to the station!";
-  }
-
-  override public function station(s: Station) {
-    if (s == target_station) {
-      target.remove();
-      finish(true);
-    }
   }
 }
 
@@ -423,9 +414,11 @@ class Train extends Entity {
         if (path.length == 0) {
           selectPush();
         }
-        current.remove();
-        current = path.pop();
-        to = current.to;
+        if (path.length > 0) {
+          current.remove();
+          current = path.pop();
+          to = current.to;
+        }
       }
     }
 
@@ -467,7 +460,7 @@ class Enemy extends Entity {
     pos.y = from.pos.y;
     angle = to.pos.distance(from.pos).angle;
     gfx.clear();
-    gfx.fill(C.orange).line(2, C.blue).rect(0, 0, 34, 16);
+    gfx.fill(C.black).line(2, C.black).rect(0, 0, 34, 16);
 
     addHitBox(Rect(0, 0, 34, 16));
   }
