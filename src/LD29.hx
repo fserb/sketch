@@ -9,6 +9,7 @@ Beneath the surface
 TODO
 ====
 - score
+- explosions
 - sound
 */
 
@@ -27,7 +28,7 @@ class C {
   static public var white = 0xFFFFFF;
   static public var black = 0x1C140D;
   static public var green = 0xCBE86B;
-  static public var lightgreen = 0xe6e9bc;
+  static public var lightgreen = 0xe2e9af;
   static public var purple = 0x936be8; // 0xdf9bea; // 0xF2E9E1;
   static public var red = 0xd7364e;
   static public var blue = 0x6baee8;
@@ -58,7 +59,7 @@ class LD29 extends Game {
     new Grid();
     new Train(Game.one("Station"));
 
-    Message.chain(["you are a train" ]);
+    Message.chain(["you are a metro car" ]);
 
     new Timer().delay(5).run(function() {
       mission = new Mission();
@@ -343,6 +344,7 @@ class Selection extends Entity {
 
 class Train extends Entity {
   static var layer = 25;
+  var from: Station;
   var to: Station;
   public var current: Selection;
   var head: Station;
@@ -351,7 +353,7 @@ class Train extends Entity {
   var sel: Selection;
 
   override public function begin() {
-    var from: Station = args[0];
+    from = args[0];
     var s = Std.int(from.conn.length*Math.random());
     head = to = from.conn[s];
     pos.x = to.pos.x;
@@ -391,7 +393,7 @@ class Train extends Entity {
   }
 
   static var TURNSPEED = 2.0;
-  static var ACCSPEED = 150.0;
+  static var ACCSPEED = 200.0;
 
   override public function update() {
     var d = to.pos.distance(pos);
@@ -401,9 +403,12 @@ class Train extends Entity {
 
     angle += da;
 
-    var acc = ACCSPEED;
-    if (Game.key.b1) {
-      acc = 0.0;
+    var acc = 0.0;
+    if (Game.key.up) {
+      acc = ACCSPEED;
+    }
+    if (Game.key.down) {
+      acc = -ACCSPEED/2.0;
     }
 
     // break when getting closer to the station
@@ -411,8 +416,18 @@ class Train extends Entity {
 
     if (Math.abs(da) < Math.PI/64*Game.time) {
       var fulllength = d.length;
-      d.length = Math.min(fulllength, acc*Game.time);
-      pos.add(d);
+
+      if (acc > 0) {
+        d.length = Math.min(fulllength, acc*Game.time);
+        pos.add(d);
+      } else if (acc < 0) {
+        var back = pos.distance(from.pos);
+        d.normalize();
+        var backlength = Math.max(0, d.dot(back));
+        d.length = Math.min(backlength, -acc*Game.time);
+        pos.sub(d);
+      }
+
       if (fulllength <= acc*Game.time) {
         if (Game.main.mission != null) {
           Game.main.mission.station(to);
@@ -423,6 +438,7 @@ class Train extends Entity {
         if (path.length > 0) {
           current.remove();
           current = path.pop();
+          from = to;
           to = current.to;
         }
       }
@@ -430,26 +446,26 @@ class Train extends Entity {
 
     if (Game.key.left_pressed) select(selection - 1);
     if (Game.key.right_pressed) select(selection + 1);
-    if (Game.key.up_pressed) {
-      selectPush();
-    }
-    if (Game.key.down_pressed) {
-      if (path.length > 0) {
-        var x = path.last();
-        path.remove(x);
-        head = x.from;
-        sel.remove();
-        sel = new Selection(x.from, x.to, C.purple);
-        selection = 0;
-        for (i in 0...x.from.conn.length) {
-          if (x.from.conn[i] == x.to) {
-            selection = i;
-            break;
-          }
-        }
-        x.remove();
-      }
-    }
+    // if (Game.key.up_pressed) {
+    //   selectPush();
+    // }
+    // if (Game.key.down_pressed) {
+    //   if (path.length > 0) {
+    //     var x = path.last();
+    //     path.remove(x);
+    //     head = x.from;
+    //     sel.remove();
+    //     sel = new Selection(x.from, x.to, C.purple);
+    //     selection = 0;
+    //     for (i in 0...x.from.conn.length) {
+    //       if (x.from.conn[i] == x.to) {
+    //         selection = i;
+    //         break;
+    //       }
+    //     }
+    //     x.remove();
+    //   }
+    // }
   }
 }
 
