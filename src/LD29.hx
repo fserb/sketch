@@ -1,11 +1,5 @@
 //@ ugl.bgcolor = 0xFFFFFF
 
-/*
-TODO
-====
-- explosions
-*/
-
 import vault.ugl.*;
 import flash.geom.Point;
 import flash.geom.Rectangle;
@@ -72,8 +66,17 @@ class LD29 extends Game {
     score = 0.0;
   }
 
+  override public function final() {
+  }
+
   override public function end() {
+    var p: Train = Game.one("Train");
+    new Sound("explosion").play();
+      new Particle().xy(p.pos.x, p.pos.y).color(C.green).spread(10)
+        .count(200).size(6).speed(30, 70).duration(1.0);
+    p.remove();
     new Score(score, true);
+    Game.shake(1.0);
   }
 
   public function newMission() {
@@ -125,15 +128,7 @@ class LD29 extends Game {
 
     displayScore.score = score;
     new Score(score, false);
-
-
-    if (Game.key.b2_pressed) {
-      new Sound("" + xxx).explosion(xxx).play();
-      trace(xxx);
-      xxx++;
-    }
   }
-  var xxx = 4001;
 }
 
 class Scorer extends Entity {
@@ -173,7 +168,6 @@ class Mission extends Entity {
     pos.x = 240;
     pos.y = 500;
     time = getNext()/20;
-    time = 3.0;
     msg = "Get to the station!";
   }
 
@@ -194,6 +188,7 @@ class Mission extends Entity {
   public function station(s: Station) {
     if (s == target_station) {
       new Sound("reach").play();
+      Game.delay(0.1);
       combo++;
       Game.main.score += 10*combo*Math.sqrt(Game.main.enemies)/5;
       if (combo == 1) {
@@ -540,8 +535,6 @@ class Enemy extends Entity {
 
     var p: Train = Game.one("Train");
     if (p != null && hit(p)) {
-      new Sound("explosion").play();
-      p.remove();
       Game.endGame();
     }
   }
