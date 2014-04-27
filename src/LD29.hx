@@ -14,7 +14,6 @@ Beneath the surface
 
 TODO
 ====
-- different selection and from/to so we can chain movements
 - add missions
 - score
 - sound
@@ -222,8 +221,8 @@ class Station extends Entity {
 
 class Selection extends Entity {
   static var layer = 14;
-  var from: Station;
-  var to: Station;
+  public var from: Station;
+  public var to: Station;
 
   override public function begin() {
     from = args[0];
@@ -253,7 +252,7 @@ class Enemy extends Entity {
     addHitBox(Rect(0, 0, 34, 16));
   }
   static var TURNSPEED = 1.5;
-  static var ACCSPEED = 40.0;
+  static var ACCSPEED = 80.0;
 
   override public function update() {
     var d = to.pos.distance(pos);
@@ -291,29 +290,29 @@ class Enemy extends Entity {
 
 class Train extends Entity {
   static var layer = 25;
-  var from: Station;
   var to: Station;
   var current: Selection;
+  var head: Station;
+  var path: List<Selection>;
   var selection: Int;
   var sel: Selection;
-  var fullspeed: Bool;
   public var passangers: Array<Int>;
   public var totalpassangers: Int;
 
   override public function begin() {
-    from = args[0];
+    var from: Station = args[0];
     var s = Std.int(from.conn.length*Math.random());
-    to = from.conn[s];
-    pos.x = from.pos.x;
-    pos.y = from.pos.y;
+    head = to = from.conn[s];
+    pos.x = to.pos.x;
+    pos.y = to.pos.y;
     angle = to.pos.distance(from.pos).angle;
-    sel = null;
     current = new Selection(from, to, C.green);
-    select(0);
+    sel = new Selection(to, to.conn[0], C.green);
+    path = new List<Selection>();
+    selectPush();
     // one for each station type.
     passangers = [0, 0, 0];
     totalpassangers = 0;
-    fullspeed = false;
     draw();
     addHitBox(Rect(0, 0, 34, 16));
   }
@@ -343,17 +342,29 @@ class Train extends Entity {
     }
   }
 
-  function clearSelect() {
-    if (sel != null) {
-      sel.remove();
-      sel = null;
-    }
+  function select(s: Int) {
+    selection = (head.conn.length + s) % head.conn.length;
+    sel.remove();
+    sel = new Selection(head, head.conn[selection], C.purple);
   }
 
-  function select(s: Int) {
-    selection = (to.conn.length + s) % to.conn.length;
-    clearSelect();
-    sel = new Selection(to, to.conn[selection], C.purple);
+  function selectPush() {
+    var c2 = new Selection(sel.from, sel.to, C.green);
+    path.add(c2);
+    head = c2.to;
+    var last = path.last();
+    var cur = last.to.pos.distance(last.from.pos).angle;
+    selection = 0;
+    var ang = 100.0;
+    for (i in 0...last.to.conn.length) {
+      var an = Math.abs(
+        EMath.angledistance(last.to.conn[i].pos.distance(last.to.pos).angle, cur));
+      if (an < ang) {
+        ang = an;
+        selection = i;
+      }
+    }
+    select(selection);
   }
 
   static var TURNSPEED = 1.5;
@@ -368,13 +379,10 @@ class Train extends Entity {
     angle += da;
 
     var acc = ACCSPEED;
-    if (Game.key.b1_pressed || Game.key.up_pressed) {
-      fullspeed = true;
-    }
 
-    if (fullspeed) {
-      acc = (to.type == from.type) ? 250 : 200;
-    }
+    // if (path.length != 0) {
+      acc = 100;
+    // }
 
     // break when getting closer to the station
     // acc *= Math.max(0.2, Math.min(1.0, to.pos.distance(pos).length/25.0));
@@ -385,31 +393,37 @@ class Train extends Entity {
       pos.add(d);
       if (fulllength <= acc*Game.time) {
         to.arrive(this);
-        clearSelect();
-        current.remove();
-        from = to;
-        to = to.conn[selection];
-        fullspeed = false;
-        current = new Selection(from, to, C.green);
-        var cur = to.pos.distance(from.pos).angle;
-
-        selection = 0;
-        var ang = 100.0;
-        for (i in 0...to.conn.length) {
-          var an = Math.abs(
-            EMath.angledistance(to.conn[i].pos.distance(to.pos).angle, cur));
-          if (an < ang) {
-            ang = an;
-            selection = i;
-          }
+        if (path.length == 0) {
+          selectPush();
         }
-        select(selection);
+        current.remove();
+        current = path.pop();
+        to = current.to;
       }
     }
 
-    if (!fullspeed && Game.key.left_pressed) select(selection - 1);
-    if (!fullspeed && Game.key.right_pressed) select(selection + 1);
+    if (Game.key.left_pressed) select(selection - 1);
+    if (Game.key.right_pressed) select(selection + 1);
+    if (Game.key.up_pressed || Game.key.b1_pressed) {
+      selectPush();
+    }
+    if (Game.key.down_pressed || Game.key.b2_pressed) {
+      if (path.length > 0) {
+        var x = path.last();
+        path.remove(x);
+        head = x.from;
+        sel.remove();
+        sel = new Selection(x.from, x.to, C.purple);
+        selection = 0;
+        for (i in 0...x.from.conn.length) {
+          if (x.from.conn[i] == x.to) {
+            selection = i;
+            break;
+          }
+        }
+        x.remove();
+      }
+    }
   }
-
 }
 
