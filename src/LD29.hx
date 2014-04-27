@@ -53,17 +53,17 @@ class LD29 extends Game {
 
   override public function begin() {
     new Grid();
+    new Train(Game.one("Station"));
   }
 
   override public function update() {
     var camera = new Vec2(0, 0);
 
-    if (Game.key.left) camera.x -= 200*Game.time;
-    if (Game.key.right) camera.x += 200*Game.time;
-    if (Game.key.up) camera.y -= 200*Game.time;
-    if (Game.key.down) camera.y += 200*Game.time;
+    var t = Game.one("Train");
+    camera.x = t.pos.x - 240;
+    camera.y = t.pos.y - 240;
 
-    for (c in [ "Grid", "Station", "Train" ] ) {
+    for (c in [ "Grid", "Station", "Train", "Selection" ] ) {
       for (e in Game.get(c)) {
         e.pos.x -= camera.x;
         e.pos.y -= camera.y;
@@ -75,7 +75,6 @@ class LD29 extends Game {
 class Grid extends Entity {
   static var layer = 10;
   var edges: Array<Edge>;
-  var lines: Array<Int>;
 
   override public function begin() {
     alignment = TOPLEFT;
@@ -98,7 +97,7 @@ class Grid extends Entity {
         var d = (s.x - p.x)*(s.x - p.x) + (s.y - p.y)*(s.y - p.y);
         mindist = Math.min(mindist, Math.sqrt(d));
       }
-      if (mindist < 150) continue;
+      if (mindist < 100) continue;
       points.push(p);
     }
     trace(attemps + ", " + points.length);
@@ -112,21 +111,26 @@ class Grid extends Entity {
     }
 
     edges = diagram.edges;
-    lines = new Array<Int>();
     for (e in diagram.edges) {
       if (e.lPoint == null || e.rPoint == null) continue;
       var left = stations.get(e.lPoint.x + ":" + e.lPoint.y);
       var right = stations.get(e.rPoint.x + ":" + e.rPoint.y);
-      var line = Std.int(4*Math.random());
       left.conn.push(right);
-      left.line.push(line);
       right.conn.push(left);
-      right.line.push(line);
-      lines.push(line);
     }
 
-    for (s in stations.iterator()) {
-      new Train(s);
+    for (e in Game.get("Station")) {
+      var s: Station = cast e;
+      s.conn.sort(function(a, b) {
+        var ang_a = a.pos.distance(s.pos).angle;
+        var ang_b = b.pos.distance(s.pos).angle;
+        if (ang_a < ang_b) {
+          return -1;
+        } else if (ang_a > ang_b) {
+          return 1;
+        }
+        return 0;
+      });
     }
 
     drawTunnels();
@@ -138,8 +142,7 @@ class Grid extends Entity {
     var i = 0;
     for (e in edges) {
       if (e.lPoint == null || e.rPoint == null) continue;
-      var c = C.line(lines[i++]);
-      gfx.line(6, c)
+      gfx.line(6, C.clear)
         .mt(e.lPoint.x, e.lPoint.y).lt(e.rPoint.x, e.rPoint.y);
     }
   }
@@ -151,34 +154,53 @@ class Grid extends Entity {
 class Station extends Entity {
   static var layer = 11;
   public var conn: Array<Station>;
-  public var line: Array<Int>;
 
   override public function begin() {
     pos.x = args[0];
     pos.y = args[1];
     conn = new Array<Station>();
-    line = new Array<Int>();
     gfx.fill(C.black).circle(8, 8, 8)
        .fill(C.white).circle(8, 8, 6)
        .fill(C.black).circle(8, 8, 4);
   }
 }
 
-class Train extends Entity {
-  static var layer = 12;
+class Selection extends Entity {
+  static var layer = 20;
   var from: Station;
   var to: Station;
-  var line: Int;
+
+  override public function begin() {
+    from = args[0];
+    to = args[1];
+
+
+
+    alignment = TOPLEFT;
+    pos.x = pos.y = 0;
+    gfx.line(8, args[2] == null ? C.purple : args[2]).mt(from.pos.x, from.pos.y).lt(to.pos.x, to.pos.y);
+  }
+}
+
+
+
+class Train extends Entity {
+  static var layer = 25;
+  var from: Station;
+  var to: Station;
+  var selection: Int;
+  var sel: Selection;
 
   override public function begin() {
     from = args[0];
     var s = Std.int(from.conn.length*Math.random());
     to = from.conn[s];
-    line = from.line[s];
     pos.x = from.pos.x;
     pos.y = from.pos.y;
     angle = to.pos.distance(from.pos).angle;
-    gfx.fill(C.line(line)).line(2, C.black).rect(0, 0, 50, 16);
+    gfx.fill(C.white).line(2, C.green).rect(0, 0, 50, 16);
+    sel = null;
+    select(0);
   }
 
   function findTo() {
@@ -187,7 +209,6 @@ class Train extends Entity {
     to = null;
     var picks = 1;
     for (i in 0...from.conn.length) {
-      if (from.line[i] != line) continue;
       if (to != null && from.conn[i] == except) continue;
       if (to == null || to == except || Math.random() < 1/picks) {
         to = from.conn[i];
@@ -196,22 +217,63 @@ class Train extends Entity {
     }
   }
 
+  function clearSelect() {
+    if (sel != null) {
+      sel.remove();
+      sel = null;
+    }
+  }
+
+  function select(s: Int) {
+    selection = (to.conn.length + s) % to.conn.length;
+    clearSelect();
+    sel = new Selection(to, to.conn[selection], null);
+  }
+
+  static var TURNSPEED = 1.0;
+  static var ACCSPEED = 150.0;
+
   override public function update() {
+
     var d = to.pos.distance(pos);
     var da = EMath.angledistance(d.angle, angle);
-    if (da > 0) da = Math.min(da, Math.PI/2*Game.time);
-    else if (da < 0) da = -Math.min(-da, Math.PI/2*Game.time);
+    if (da > 0) da = Math.min(da, Math.PI*TURNSPEED*Game.time);
+    else if (da < 0) da = -Math.min(-da, Math.PI*TURNSPEED*Game.time);
 
     angle += da;
 
+    var acc = ACCSPEED;
+    if (Game.key.up) {
+      acc *= 1.2;
+    }
+
+
     if (Math.abs(da) < Math.PI/64*Game.time) {
       var fulllength = d.length;
-      d.length = Math.min(fulllength, 200*Game.time);
+      d.length = Math.min(fulllength, acc*Game.time);
       pos.add(d);
-      if (fulllength <= 200*Game.time) {
-        findTo();
+      if (fulllength <= acc*Game.time) {
+        clearSelect();
+        from = to;
+        to = to.conn[selection];
+        var cur = to.pos.distance(from.pos).angle;
+
+        selection = 0;
+        var ang = 100.0;
+        for (i in 0...to.conn.length) {
+          var an = Math.abs(
+            EMath.angledistance(to.conn[i].pos.distance(to.pos).angle, cur));
+          if (an < ang) {
+            ang = an;
+            selection = i;
+          }
+        }
+        select(selection);
       }
     }
+
+    if (Game.key.left_pressed) select(selection - 1);
+    if (Game.key.right_pressed) select(selection + 1);
   }
 
 }
