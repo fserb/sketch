@@ -14,11 +14,11 @@ Beneath the surface
 
 TODO
 ====
+- don't let enemies start right away / spawn more enemies with time
+- make enemies colide with each other
 - add missions
 - score
 - sound
-- don't let enemies start right away / spawn more enemies with time
-- make enemies colide with each other
 */
 
 import vault.ugl.*;
@@ -36,7 +36,8 @@ class C {
   static public var white = 0xFFFFFF;
   static public var black = 0x1C140D;
   static public var green = 0xCBE86B;
-  static public var purple = 0xdf9bea; // 0xF2E9E1;
+  static public var purple = 0x936be8; // 0xdf9bea; // 0xF2E9E1;
+  static public var red = 0xd7364e;
   static public var blue = 0x6baee8;
   static public var orange = 0xe8996b;
   static public var clear = 0xF2E9E1;
@@ -58,9 +59,35 @@ class LD29 extends Game {
     new LD29("Beneath the Surface", "a LD29 game by Fernando Serboncini");
   }
 
+  var mission: Mission;
+
   override public function begin() {
     new Grid();
     new Train(Game.one("Station"));
+    #if !debug
+    Message.chain(["So you are a train",
+                   "Walk around the stations",
+                   "You can chain stations with up and down",
+                   "Don't hit other trains",
+                   "Do the missions"]);
+    #end
+    mission = new MissionStation();
+  }
+
+  public function randomStation(): Station {
+    var s: Station = null;
+    var i = 1;
+    for (e in Game.get("Station")) {
+      if (s == null || Math.random() < 1.0/i) {
+        s = cast e;
+      }
+      i++;
+    }
+    return s;
+  }
+
+  function addEnemy() {
+    new Enemy(randomStation());
   }
 
   override public function update() {
@@ -75,6 +102,97 @@ class LD29 extends Game {
         e.pos.x -= camera.x;
         e.pos.y -= camera.y;
       }
+    }
+  }
+}
+
+class Mission extends Entity {
+  static var layer = 499;
+
+  var time = 0.0;
+  function msg(): String { return ""; };
+  function init() {};
+  public function station(s: Station) {};
+
+  override public function begin() {
+    alignment = TOPLEFT;
+    pos.x = 0;
+    pos.y = 20;
+    init();
+  }
+
+  function finish() {
+    trace("yeah!");
+    Game.main.mission = null;
+    remove();
+  }
+
+  override public function update() {
+    gfx.clear().fill(C.red).rect(0, 0, 270, 30).text(120, 15, msg(), C.white, 2);
+    var target = 2*Math.PI - 2*Math.PI*(time - ticks)/time;
+    if (target >= 2*Math.PI) return;
+    gfx.fill(C.white);
+    gfx.mt(255, 15);
+    gfx.lt(255 + 10, 15);
+    for (i in 0...16) {
+      var ang = Math.max(target, 2*Math.PI - 2*Math.PI*i/16.0);
+      var x = 255 + 10*Math.cos(ang);
+      var y = 15 - 10*Math.sin(ang);
+      gfx.lt(x, y);
+    }
+    gfx.lt(255, 15);
+  }
+}
+
+class TargetStation extends Entity {
+  static var layer = 400;
+  var target: Station;
+  override public function begin() {
+    target = args[0];
+  }
+
+  override public function update() {
+    pos.x = target.pos.x;
+    pos.y = target.pos.y;
+
+    if (pos.x < 0 || pos.y < 0 || pos.x >= 480 || pos.y >= 480) {
+      gfx.clear().fill(C.red).mt(0, 0).lt(15, 7.5).lt(0, 15).lt(0, 0);
+
+      pos.x = Math.max(10, Math.min(470, pos.x));
+      pos.y = Math.max(10, Math.min(470, pos.y));
+
+      var v = pos.distance(new Vec2(240, 240));
+      angle = v.angle;
+
+    } else {
+      angle = 0.0;
+      gfx.clear().fill(C.red).circle(8, 8, 8)
+       .fill(C.white).circle(8, 8, 6)
+       .fill(C.red).circle(8, 8, 4);
+    }
+
+  }
+}
+
+class MissionStation extends Mission {
+  static var layer = 499;
+  var target: TargetStation;
+  var target_station: Station;
+
+  override function msg() { return "Get to the station"; };
+
+  override function init() {
+    target_station = Game.main.randomStation();
+    target = new TargetStation(target_station);
+
+    var dist:Vec2 = Game.one("Train").pos.distance(target_station.pos);
+    time = dist.length/50;
+  }
+
+  override public function station(s: Station) {
+    if (s == target_station) {
+      target.remove();
+      finish();
     }
   }
 }
@@ -107,14 +225,14 @@ class Grid extends Entity {
       if (mindist < 50) continue;
       points.push(p);
     }
-    trace(attemps + ", " + points.length);
+    // trace(attemps + ", " + points.length);
 
     var vor = new Voronoi();
     var diagram = vor.compute(points, new Rectangle(0, 0, DIM, DIM));
 
     var stations = new Map<String, Station>();
     for (p in points) {
-      stations[p.x + ":" + p.y] = new Station(p.x + pos.x, p.y + pos.y, Std.int(3*Math.random()));
+      stations[p.x + ":" + p.y] = new Station(p.x + pos.x, p.y + pos.y);
     }
 
     edges = diagram.edges;
@@ -140,13 +258,6 @@ class Grid extends Entity {
       });
     }
 
-    for (e in Game.get("Station")) {
-      if (Math.random() < 0.1) {
-        new Enemy(e);
-      }
-    }
-
-
     drawTunnels();
   }
 
@@ -169,53 +280,15 @@ class Station extends Entity {
   static var TYPES = 3;
   static var layer = 15;
   public var conn: Array<Station>;
-  public var type: Int;
-  public var passangers: Float;
-
-  public function arrive(t: Train) {
-    // remove passangers...
-    var p = t.passangers[type];
-    t.totalpassangers -= p;
-    t.passangers[type] = 0;
-
-    // add passangers...
-    var n = Std.int(Math.random()*TYPES);
-    while (t.totalpassangers < 8 && passangers >= 1) {
-      n = (n+1)%TYPES;
-      if (n == type) continue;
-      t.passangers[n] += 1;
-      t.totalpassangers += 1;
-      passangers -= 1;
-    }
-
-    t.draw();
-  }
 
   override public function begin() {
     pos.x = args[0];
     pos.y = args[1];
-    type = args[2];
-    passangers = 1.0;
     conn = new Array<Station>();
 
-    switch(type) {
-      case 0: // circle
-        gfx.fill(C.black).circle(8, 8, 8)
-           .fill(C.white).circle(8, 8, 6)
-           .fill(C.black).circle(8, 8, 4);
-      case 1: // Square
-        gfx.fill(C.black).rect(0, 0, 14, 14)
-           .fill(C.white).rect(2, 2, 10, 10)
-           .fill(C.black).rect(4, 4, 6, 6);
-      case 2: // Triangle
-        gfx.fill(C.black).mt(10, 0).lt(20, 17.3).lt(0, 17.3).lt(10, 0)
-           .fill(C.white).mt(10, 4).lt(16.5, 15.3).lt(3.5, 15.3).lt(10, 4)
-           .fill(C.black).mt(10, 7).lt(13.9, 13.8).lt(6.1, 13.8).lt(10, 7);
-    }
-  }
-
-  override public function update() {
-    passangers = Math.min(4, passangers + Game.time/10.0);
+    gfx.fill(C.black).circle(8, 8, 8)
+       .fill(C.white).circle(8, 8, 6)
+       .fill(C.black).circle(8, 8, 4);
   }
 }
 
@@ -234,6 +307,113 @@ class Selection extends Entity {
   }
 }
 
+class Train extends Entity {
+  static var layer = 25;
+  var to: Station;
+  public var current: Selection;
+  var head: Station;
+  var path: List<Selection>;
+  var selection: Int;
+  var sel: Selection;
+
+  override public function begin() {
+    var from: Station = args[0];
+    var s = Std.int(from.conn.length*Math.random());
+    head = to = from.conn[s];
+    pos.x = to.pos.x;
+    pos.y = to.pos.y;
+    angle = to.pos.distance(from.pos).angle;
+    current = new Selection(from, to, C.green);
+    sel = new Selection(to, to.conn[0], C.green);
+    path = new List<Selection>();
+    selectPush();
+    gfx.fill(C.white).line(2, C.green).rect(0, 0, 34, 16);
+    addHitBox(Rect(0, 0, 34, 16));
+  }
+
+  function select(s: Int) {
+    selection = (head.conn.length + s) % head.conn.length;
+    sel.remove();
+    sel = new Selection(head, head.conn[selection], C.purple);
+  }
+
+  function selectPush() {
+    var c2 = new Selection(sel.from, sel.to, C.green);
+    path.add(c2);
+    head = c2.to;
+    var last = path.last();
+    var cur = last.to.pos.distance(last.from.pos).angle;
+    selection = 0;
+    var ang = 100.0;
+    for (i in 0...last.to.conn.length) {
+      var an = Math.abs(
+        EMath.angledistance(last.to.conn[i].pos.distance(last.to.pos).angle, cur));
+      if (an < ang) {
+        ang = an;
+        selection = i;
+      }
+    }
+    select(selection);
+  }
+
+  static var TURNSPEED = 2.0;
+  static var ACCSPEED = 150.0;
+
+  override public function update() {
+    var d = to.pos.distance(pos);
+    var da = EMath.angledistance(d.angle, angle);
+    if (da > 0) da = Math.min(da, Math.PI*TURNSPEED*Game.time);
+    else if (da < 0) da = -Math.min(-da, Math.PI*TURNSPEED*Game.time);
+
+    angle += da;
+
+    var acc = ACCSPEED;
+
+    // break when getting closer to the station
+    // acc *= Math.max(0.2, Math.min(1.0, to.pos.distance(pos).length/25.0));
+
+    if (Math.abs(da) < Math.PI/64*Game.time) {
+      var fulllength = d.length;
+      d.length = Math.min(fulllength, acc*Game.time);
+      pos.add(d);
+      if (fulllength <= acc*Game.time) {
+        if (Game.main.mission != null) {
+          Game.main.mission.station(to);
+        }
+        if (path.length == 0) {
+          selectPush();
+        }
+        current.remove();
+        current = path.pop();
+        to = current.to;
+      }
+    }
+
+    if (Game.key.left_pressed) select(selection - 1);
+    if (Game.key.right_pressed) select(selection + 1);
+    if (Game.key.up_pressed || Game.key.b1_pressed) {
+      selectPush();
+    }
+    if (Game.key.down_pressed || Game.key.b2_pressed) {
+      if (path.length > 0) {
+        var x = path.last();
+        path.remove(x);
+        head = x.from;
+        sel.remove();
+        sel = new Selection(x.from, x.to, C.purple);
+        selection = 0;
+        for (i in 0...x.from.conn.length) {
+          if (x.from.conn[i] == x.to) {
+            selection = i;
+            break;
+          }
+        }
+        x.remove();
+      }
+    }
+  }
+}
+
 class Enemy extends Entity {
   static var layer = 23;
   var from: Station;
@@ -247,7 +427,7 @@ class Enemy extends Entity {
     pos.y = from.pos.y;
     angle = to.pos.distance(from.pos).angle;
     gfx.clear();
-    gfx.fill(C.orange).line(2, C.orange).rect(0, 0, 34, 16);
+    gfx.fill(C.orange).line(2, C.blue).rect(0, 0, 34, 16);
 
     addHitBox(Rect(0, 0, 34, 16));
   }
@@ -288,142 +468,37 @@ class Enemy extends Entity {
   }
 }
 
-class Train extends Entity {
-  static var layer = 25;
-  var to: Station;
-  var current: Selection;
-  var head: Station;
-  var path: List<Selection>;
-  var selection: Int;
-  var sel: Selection;
-  public var passangers: Array<Int>;
-  public var totalpassangers: Int;
+class Message extends Entity {
+  static var layer = 500;
+  var next: Void -> Void;
+
+  static public function chain(msgs: Array<String>) {
+    var f = function() {};
+
+    while (msgs.length > 1) {
+      var m = msgs.pop();
+      var oldf = f;
+      f = function() { new Message(m, oldf); }
+    }
+    new Message(msgs.pop(), f);
+  }
 
   override public function begin() {
-    var from: Station = args[0];
-    var s = Std.int(from.conn.length*Math.random());
-    head = to = from.conn[s];
-    pos.x = to.pos.x;
-    pos.y = to.pos.y;
-    angle = to.pos.distance(from.pos).angle;
-    current = new Selection(from, to, C.green);
-    sel = new Selection(to, to.conn[0], C.green);
-    path = new List<Selection>();
-    selectPush();
-    // one for each station type.
-    passangers = [0, 0, 0];
-    totalpassangers = 0;
-    draw();
-    addHitBox(Rect(0, 0, 34, 16));
+    next = args[1];
+    gfx.fill(C.black).rect(0, 0, 480, 30).text(240, 15, args[0], C.white, 2);
+    pos.x = -240;
+    pos.y = 440;
   }
-
-  public function draw() {
-    gfx.clear();
-    gfx.fill(C.white).line(2, C.green).rect(0, 0, 34, 16);
-
-    var pos = 0;
-
-    for (i in 0...passangers[0]) {
-      var p = new Vec2(27 - 7*Std.int(pos/2), 4.5 + (pos%2)*7);
-      gfx.fill(C.green).line(1, C.green).circle(p.x, p.y, 2.275);
-      pos++;
-    }
-
-    for (i in 0...passangers[1]) {
-      var p = new Vec2(27 - 7*Std.int(pos/2), 4.5 + (pos%2)*7);
-      gfx.fill(C.green).line(1, C.green).rect(p.x - 2.6, p.y - 2.6, 5.2, 5.2);
-      pos++;
-    }
-
-    for (i in 0...passangers[2]) {
-      var p = new Vec2(27 - 7*Std.int(pos/2), 4.5 + (pos%2)*7);
-      gfx.fill(C.green).line(1, C.green).mt(p.x, p.y - 2.275).lt(p.x + 2.6, p.y + 2.275).lt(p.x - 2.6, p.y + 2.275).lt(p.x, p.y - 2.275);
-      pos++;
-    }
-  }
-
-  function select(s: Int) {
-    selection = (head.conn.length + s) % head.conn.length;
-    sel.remove();
-    sel = new Selection(head, head.conn[selection], C.purple);
-  }
-
-  function selectPush() {
-    var c2 = new Selection(sel.from, sel.to, C.green);
-    path.add(c2);
-    head = c2.to;
-    var last = path.last();
-    var cur = last.to.pos.distance(last.from.pos).angle;
-    selection = 0;
-    var ang = 100.0;
-    for (i in 0...last.to.conn.length) {
-      var an = Math.abs(
-        EMath.angledistance(last.to.conn[i].pos.distance(last.to.pos).angle, cur));
-      if (an < ang) {
-        ang = an;
-        selection = i;
-      }
-    }
-    select(selection);
-  }
-
-  static var TURNSPEED = 1.5;
-  static var ACCSPEED = 40.0;
 
   override public function update() {
-    var d = to.pos.distance(pos);
-    var da = EMath.angledistance(d.angle, angle);
-    if (da > 0) da = Math.min(da, Math.PI*TURNSPEED*Game.time);
-    else if (da < 0) da = -Math.min(-da, Math.PI*TURNSPEED*Game.time);
+    pos.x = -240 + Math.min(1.0, Ease.quadIn(ticks/0.75))*480;
 
-    angle += da;
-
-    var acc = ACCSPEED;
-
-    // if (path.length != 0) {
-      acc = 100;
-    // }
-
-    // break when getting closer to the station
-    // acc *= Math.max(0.2, Math.min(1.0, to.pos.distance(pos).length/25.0));
-
-    if (Math.abs(da) < Math.PI/64*Game.time) {
-      var fulllength = d.length;
-      d.length = Math.min(fulllength, acc*Game.time);
-      pos.add(d);
-      if (fulllength <= acc*Game.time) {
-        to.arrive(this);
-        if (path.length == 0) {
-          selectPush();
-        }
-        current.remove();
-        current = path.pop();
-        to = current.to;
-      }
+    if (ticks >= 3.0) {
+      pos.x = 240 + Math.min(1.0, Ease.quadIn((ticks - 3.0)/0.75))*480;
     }
-
-    if (Game.key.left_pressed) select(selection - 1);
-    if (Game.key.right_pressed) select(selection + 1);
-    if (Game.key.up_pressed || Game.key.b1_pressed) {
-      selectPush();
-    }
-    if (Game.key.down_pressed || Game.key.b2_pressed) {
-      if (path.length > 0) {
-        var x = path.last();
-        path.remove(x);
-        head = x.from;
-        sel.remove();
-        sel = new Selection(x.from, x.to, C.purple);
-        selection = 0;
-        for (i in 0...x.from.conn.length) {
-          if (x.from.conn[i] == x.to) {
-            selection = i;
-            break;
-          }
-        }
-        x.remove();
-      }
+    if (ticks >= 4.0) {
+      remove();
+      next();
     }
   }
 }
-
