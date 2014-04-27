@@ -1,16 +1,9 @@
 //@ ugl.bgcolor = 0xFFFFFF
 
 /*
-Beneath the surface
-===================
-
-- control a single train
-
 TODO
 ====
-- score
 - explosions
-- sound
 */
 
 import vault.ugl.*;
@@ -47,9 +40,17 @@ class C {
 }
 
 class LD29 extends Game {
+  public var score = 0.0;
+  var displayScore: Scorer;
   static public function main() {
     Game.baseColor = 0x000000;
     new LD29("Beneath the Surface", "a LD29 game by Fernando Serboncini");
+
+    new Sound("switch").hit(764);
+    new Sound("station").vol(0.15).coin(112);
+    new Sound("reach").coin(82);
+    new Sound("timeup").vol(0.1).explosion(4073);
+    new Sound("explosion").explosion(4005);
   }
 
   var mission: Mission;
@@ -58,6 +59,7 @@ class LD29 extends Game {
   override public function begin() {
     new Grid();
     new Train(Game.one("Station"));
+    displayScore = new Scorer();
 
     Message.chain(["you are a metro car" ]);
 
@@ -67,6 +69,11 @@ class LD29 extends Game {
     });
 
     enemies = 0;
+    score = 0.0;
+  }
+
+  override public function end() {
+    new Score(score, true);
   }
 
   public function newMission() {
@@ -113,6 +120,34 @@ class LD29 extends Game {
     while (enemies < targetEnemies) {
       addEnemy();
     }
+
+    score += Game.time*Math.sqrt(enemies)/50.0;
+
+    displayScore.score = score;
+    new Score(score, false);
+
+
+    if (Game.key.b2_pressed) {
+      new Sound("" + xxx).explosion(xxx).play();
+      trace(xxx);
+      xxx++;
+    }
+  }
+  var xxx = 4001;
+}
+
+class Scorer extends Entity {
+  static var layer = 400;
+  public var score = 0.0;
+  override public function begin() {
+    pos.x = 10;
+    pos.y = 10;
+    alignment = TOPLEFT;
+  }
+  override public function update() {
+    gfx.clear();
+    var s = Std.int(score);
+    gfx.cache(s).fill(C.black).rect(0, 0, 80, 30).text(40, 15, "" + s, C.white, 2);
   }
 }
 
@@ -138,12 +173,14 @@ class Mission extends Entity {
     pos.x = 240;
     pos.y = 500;
     time = getNext()/20;
+    time = 3.0;
     msg = "Get to the station!";
   }
 
   function finish() {
     target.remove();
     if (end < 0) {
+      new Sound("timeup").play();
       end = 3.0;
       Game.main.mission = null;
       if (combo <= 1) {
@@ -156,7 +193,9 @@ class Mission extends Entity {
 
   public function station(s: Station) {
     if (s == target_station) {
+      new Sound("reach").play();
       combo++;
+      Game.main.score += 10*combo*Math.sqrt(Game.main.enemies)/5;
       if (combo == 1) {
         msg = "Go to the next one!";
       } else {
@@ -411,9 +450,6 @@ class Train extends Entity {
       acc = -ACCSPEED/2.0;
     }
 
-    // break when getting closer to the station
-    // acc *= Math.max(0.2, Math.min(1.0, to.pos.distance(pos).length/25.0));
-
     if (Math.abs(da) < Math.PI/64*Game.time) {
       var fulllength = d.length;
 
@@ -429,6 +465,7 @@ class Train extends Entity {
       }
 
       if (fulllength <= acc*Game.time) {
+        new Sound("station").play();
         if (Game.main.mission != null) {
           Game.main.mission.station(to);
         }
@@ -444,28 +481,14 @@ class Train extends Entity {
       }
     }
 
-    if (Game.key.left_pressed) select(selection - 1);
-    if (Game.key.right_pressed) select(selection + 1);
-    // if (Game.key.up_pressed) {
-    //   selectPush();
-    // }
-    // if (Game.key.down_pressed) {
-    //   if (path.length > 0) {
-    //     var x = path.last();
-    //     path.remove(x);
-    //     head = x.from;
-    //     sel.remove();
-    //     sel = new Selection(x.from, x.to, C.purple);
-    //     selection = 0;
-    //     for (i in 0...x.from.conn.length) {
-    //       if (x.from.conn[i] == x.to) {
-    //         selection = i;
-    //         break;
-    //       }
-    //     }
-    //     x.remove();
-    //   }
-    // }
+    if (Game.key.left_pressed) {
+      new Sound("switch").play();
+      select(selection - 1);
+    }
+    if (Game.key.right_pressed) {
+      new Sound("switch").play();
+     select(selection + 1);
+   }
   }
 }
 
@@ -517,6 +540,7 @@ class Enemy extends Entity {
 
     var p: Train = Game.one("Train");
     if (p != null && hit(p)) {
+      new Sound("explosion").play();
       p.remove();
       Game.endGame();
     }

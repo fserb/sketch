@@ -15,12 +15,12 @@ def main(args):
     "bgcolor": 0x000000,
     "haxelib": [] }
 
-  params['debug'] = '<haxedef name="debug" />'
+  params['debug'] = '<haxedef name="ugldebug" />'
   if len(args) >= 3:
     if args[2] == 'prod':
       params['debug'] = ''
     elif args[2] == 'debugfps':
-      params['debug'] += '\n  <haxedef name="debugfps" />'
+      params['debug'] += '\n  <haxedef name="ugldebugfps" />'
 
   for l in file("src/" + prj + ".hx"):
     ls = l.strip()
