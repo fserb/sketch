@@ -4,12 +4,20 @@
 Beneath the surface
 ===================
 
-- trains passing by stations
-- you can switch to different trains
+- control a single train
+- take passangers
+- collide with other trains?
 - missions:
-  - follow the passanger in a different train
   - get to a station in X secconds
-  - catch a train in X seconds
+  - take passanger Y to station Z in X seconds
+  - pass by Y stations in X seconds
+
+TODO
+====
+- add missions
+- score
+- sound
+- add other trains?
 
 
 */
@@ -107,7 +115,7 @@ class Grid extends Entity {
 
     var stations = new Map<String, Station>();
     for (p in points) {
-      stations[p.x + ":" + p.y] = new Station(p.x + pos.x, p.y + pos.y);
+      stations[p.x + ":" + p.y] = new Station(p.x + pos.x, p.y + pos.y, Std.int(3*Math.random()));
     }
 
     edges = diagram.edges;
@@ -152,21 +160,61 @@ class Grid extends Entity {
 }
 
 class Station extends Entity {
-  static var layer = 11;
+  static var TYPES = 3;
+  static var layer = 15;
   public var conn: Array<Station>;
+  public var type: Int;
+  public var passangers: Float;
+
+  public function arrive(t: Train) {
+    // remove passangers...
+    var p = t.passangers[type];
+    t.totalpassangers -= p;
+    t.passangers[type] = 0;
+
+    // add passangers...
+    var n = Std.int(Math.random()*TYPES);
+    while (t.totalpassangers < 8 && passangers >= 1) {
+      n = (n+1)%TYPES;
+      if (n == type) continue;
+      t.passangers[n] += 1;
+      t.totalpassangers += 1;
+      passangers -= 1;
+    }
+
+    t.draw();
+  }
 
   override public function begin() {
     pos.x = args[0];
     pos.y = args[1];
+    type = args[2];
+    passangers = 1.0;
     conn = new Array<Station>();
-    gfx.fill(C.black).circle(8, 8, 8)
-       .fill(C.white).circle(8, 8, 6)
-       .fill(C.black).circle(8, 8, 4);
+
+    switch(type) {
+      case 0: // circle
+        gfx.fill(C.black).circle(8, 8, 8)
+           .fill(C.white).circle(8, 8, 6)
+           .fill(C.black).circle(8, 8, 4);
+      case 1: // Square
+        gfx.fill(C.black).rect(0, 0, 14, 14)
+           .fill(C.white).rect(2, 2, 10, 10)
+           .fill(C.black).rect(4, 4, 6, 6);
+      case 2: // Triangle
+        gfx.fill(C.black).mt(10, 0).lt(20, 17.3).lt(0, 17.3).lt(10, 0)
+           .fill(C.white).mt(10, 4).lt(16.5, 15.3).lt(3.5, 15.3).lt(10, 4)
+           .fill(C.black).mt(10, 7).lt(13.9, 13.8).lt(6.1, 13.8).lt(10, 7);
+    }
+  }
+
+  override public function update() {
+    passangers = Math.min(4, passangers + Game.time/10.0);
   }
 }
 
 class Selection extends Entity {
-  static var layer = 20;
+  static var layer = 14;
   var from: Station;
   var to: Station;
 
@@ -174,22 +222,21 @@ class Selection extends Entity {
     from = args[0];
     to = args[1];
 
-
-
     alignment = TOPLEFT;
     pos.x = pos.y = 0;
-    gfx.line(8, args[2] == null ? C.purple : args[2]).mt(from.pos.x, from.pos.y).lt(to.pos.x, to.pos.y);
+    gfx.line(8, args[2]).mt(from.pos.x, from.pos.y).lt(to.pos.x, to.pos.y);
   }
 }
-
-
 
 class Train extends Entity {
   static var layer = 25;
   var from: Station;
   var to: Station;
+  var current: Selection;
   var selection: Int;
   var sel: Selection;
+  public var passangers: Array<Int>;
+  public var totalpassangers: Int;
 
   override public function begin() {
     from = args[0];
@@ -198,22 +245,37 @@ class Train extends Entity {
     pos.x = from.pos.x;
     pos.y = from.pos.y;
     angle = to.pos.distance(from.pos).angle;
-    gfx.fill(C.white).line(2, C.green).rect(0, 0, 50, 16);
     sel = null;
+    current = new Selection(from, to, C.green);
     select(0);
+    // one for each station type.
+    passangers = [0, 0, 0];
+    totalpassangers = 0;
+    draw();
   }
 
-  function findTo() {
-    var except = from;
-    from = to;
-    to = null;
-    var picks = 1;
-    for (i in 0...from.conn.length) {
-      if (to != null && from.conn[i] == except) continue;
-      if (to == null || to == except || Math.random() < 1/picks) {
-        to = from.conn[i];
-      }
-      picks++;
+  public function draw() {
+    gfx.clear();
+    gfx.fill(C.white).line(2, C.green).rect(0, 0, 58, 24);
+
+    var pos = 0;
+
+    for (i in 0...passangers[0]) {
+      var p = new Vec2(48 - 12*Std.int(pos/2), 7 + (pos%2)*10);
+      gfx.fill(C.white).line(1, C.green).circle(p.x, p.y, 3.5);
+      pos++;
+    }
+
+    for (i in 0...passangers[1]) {
+      var p = new Vec2(48 - 12*Std.int(pos/2), 7 + (pos%2)*10);
+      gfx.fill(C.white).line(1, C.green).rect(p.x - 4, p.y - 4, 8, 8);
+      pos++;
+    }
+
+    for (i in 0...passangers[2]) {
+      var p = new Vec2(48 - 12*Std.int(pos/2), 7 + (pos%2)*10);
+      gfx.fill(C.white).line(1, C.green).mt(p.x, p.y - 3.5).lt(p.x + 4, p.y + 3.5).lt(p.x - 4, p.y + 3.5).lt(p.x, p.y - 3.5);
+      pos++;
     }
   }
 
@@ -227,11 +289,11 @@ class Train extends Entity {
   function select(s: Int) {
     selection = (to.conn.length + s) % to.conn.length;
     clearSelect();
-    sel = new Selection(to, to.conn[selection], null);
+    sel = new Selection(to, to.conn[selection], C.purple);
   }
 
-  static var TURNSPEED = 1.0;
-  static var ACCSPEED = 150.0;
+  static var TURNSPEED = 1.5;
+  static var ACCSPEED = 100.0;
 
   override public function update() {
 
@@ -243,19 +305,30 @@ class Train extends Entity {
     angle += da;
 
     var acc = ACCSPEED;
-    if (Game.key.up) {
-      acc *= 1.2;
+    if (to.type == from.type) {
+      acc *= 1.5;
     }
 
+    #if debug
+    if (Game.key.up) {
+      acc = 300;
+    }
+    #end
+
+    // break when getting closer to the station
+    acc *= Math.max(0.2, Math.min(1.0, to.pos.distance(pos).length/25.0));
 
     if (Math.abs(da) < Math.PI/64*Game.time) {
       var fulllength = d.length;
       d.length = Math.min(fulllength, acc*Game.time);
       pos.add(d);
       if (fulllength <= acc*Game.time) {
+        to.arrive(this);
         clearSelect();
+        current.remove();
         from = to;
         to = to.conn[selection];
+        current = new Selection(from, to, C.green);
         var cur = to.pos.distance(from.pos).angle;
 
         selection = 0;
