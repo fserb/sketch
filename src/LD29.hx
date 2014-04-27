@@ -111,7 +111,7 @@ class LD29 extends Game {
     camera.x = t.pos.x - 240;
     camera.y = t.pos.y - 240;
 
-    for (c in [ "Grid", "Station", "Train", "Selection", "Enemy" ] ) {
+    for (c in [ "Grid", "Station", "Train", "Enemy" ] ) {
       for (e in Game.get(c)) {
         e.pos.x -= camera.x;
         e.pos.y -= camera.y;
@@ -188,7 +188,7 @@ class Mission extends Entity {
   public function station(s: Station) {
     if (s == target_station) {
       new Sound("reach").play();
-      Game.delay(0.1);
+      Game.shake(0.1);
       combo++;
       Game.main.score += 10*combo*Math.sqrt(Game.main.enemies)/5;
       if (combo == 1) {
@@ -282,7 +282,7 @@ class Grid extends Entity {
     pos.x = pos.y = -DIM/2.0;
 
     var attemps = 0;
-    while (attemps < 3000 && points.length < 600) {
+    while (attemps < 3000 && points.length < 500) {
       attemps++;
       var p = new Point(Std.int(DIM*Math.random()), Std.int(DIM*Math.random()));
 
@@ -291,10 +291,10 @@ class Grid extends Entity {
         var d = (s.x - p.x)*(s.x - p.x) + (s.y - p.y)*(s.y - p.y);
         mindist = Math.min(mindist, Math.sqrt(d));
       }
-      if (mindist < 50) continue;
+      if (mindist < 75) continue;
       points.push(p);
     }
-    // trace(attemps + ", " + points.length);
+    trace(attemps + ", " + points.length);
 
     var vor = new Voronoi();
     var diagram = vor.compute(points, new Rectangle(0, 0, DIM, DIM));
@@ -365,14 +365,19 @@ class Selection extends Entity {
   static var layer = 14;
   public var from: Station;
   public var to: Station;
+  public var color: Int;
 
   override public function begin() {
     from = args[0];
     to = args[1];
+    color = args[2];
 
     alignment = TOPLEFT;
     pos.x = pos.y = 0;
-    gfx.line(8, args[2]).mt(from.pos.x, from.pos.y).lt(to.pos.x, to.pos.y);
+  }
+
+  override public function update() {
+    gfx.clear().line(8, color).mt(from.pos.x, from.pos.y).lt(to.pos.x, to.pos.y);
   }
 }
 
@@ -385,6 +390,8 @@ class Train extends Entity {
   var path: List<Selection>;
   var selection: Int;
   var sel: Selection;
+  var sndStation: Sound;
+  var sndSwitch: Sound;
 
   override public function begin() {
     from = args[0];
@@ -399,6 +406,8 @@ class Train extends Entity {
     selectPush();
     gfx.fill(C.green).rect(0, 0, 34, 16);
     addHitBox(Rect(0, 0, 34, 16));
+    sndStation = new Sound("station");
+    sndSwitch = new Sound("switch");
   }
 
   function select(s: Int) {
@@ -460,7 +469,7 @@ class Train extends Entity {
       }
 
       if (fulllength <= acc*Game.time) {
-        new Sound("station").play();
+        sndStation.play();
         if (Game.main.mission != null) {
           Game.main.mission.station(to);
         }
@@ -477,11 +486,11 @@ class Train extends Entity {
     }
 
     if (Game.key.left_pressed) {
-      new Sound("switch").play();
+      sndSwitch.play();
       select(selection - 1);
     }
     if (Game.key.right_pressed) {
-      new Sound("switch").play();
+      sndSwitch.play();
      select(selection + 1);
    }
   }
