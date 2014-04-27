@@ -38,10 +38,8 @@ class LD29 extends Game {
   var displayScore: Scorer;
   static public function main() {
     Game.baseColor = 0x000000;
-    new LD29("Beneath the Surface", "a LD29 game by Fernando Serboncini");
+    new LD29("You are a metro car", "a LD29 game by Fernando Serboncini");
 
-    new Sound("switch").hit(764);
-    new Sound("station").vol(0.15).coin(112);
     new Sound("reach").coin(82);
     new Sound("timeup").vol(0.1).explosion(4073);
     new Sound("explosion").explosion(4005);
@@ -236,7 +234,7 @@ class Mission extends Entity {
 }
 
 class TargetStation extends Entity {
-  static var layer = 400;
+  static var layer = 450;
   var target: Station;
 
   override public function begin() {
@@ -294,7 +292,7 @@ class Grid extends Entity {
       if (mindist < 75) continue;
       points.push(p);
     }
-    trace(attemps + ", " + points.length);
+    // trace(attemps + ", " + points.length);
 
     var vor = new Voronoi();
     var diagram = vor.compute(points, new Rectangle(0, 0, DIM, DIM));
@@ -406,8 +404,8 @@ class Train extends Entity {
     selectPush();
     gfx.fill(C.green).rect(0, 0, 34, 16);
     addHitBox(Rect(0, 0, 34, 16));
-    sndStation = new Sound("station");
-    sndSwitch = new Sound("switch");
+    sndStation = new Sound("station").vol(0.15).coin(112);
+    sndSwitch = new Sound("switch").hit(764);
   }
 
   function select(s: Int) {
@@ -469,6 +467,7 @@ class Train extends Entity {
       }
 
       if (fulllength <= acc*Game.time) {
+
         sndStation.play();
         if (Game.main.mission != null) {
           Game.main.mission.station(to);
