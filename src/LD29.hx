@@ -14,12 +14,12 @@ Beneath the surface
 
 TODO
 ====
+- different selection and from/to so we can chain movements
 - add missions
 - score
 - sound
-- add other trains?
-
-
+- don't let enemies start right away / spawn more enemies with time
+- make enemies colide with each other
 */
 
 import vault.ugl.*;
@@ -71,7 +71,7 @@ class LD29 extends Game {
     camera.x = t.pos.x - 240;
     camera.y = t.pos.y - 240;
 
-    for (c in [ "Grid", "Station", "Train", "Selection" ] ) {
+    for (c in [ "Grid", "Station", "Train", "Selection", "Enemy" ] ) {
       for (e in Game.get(c)) {
         e.pos.x -= camera.x;
         e.pos.y -= camera.y;
@@ -92,11 +92,11 @@ class Grid extends Entity {
   function createStations() {
     var points = new Array<Point>();
 
-    var DIM = 480*5;
+    var DIM = 480*4;
     pos.x = pos.y = -DIM/2.0;
 
     var attemps = 0;
-    while (attemps < 1000 && points.length < 200) {
+    while (attemps < 3000 && points.length < 600) {
       attemps++;
       var p = new Point(Std.int(DIM*Math.random()), Std.int(DIM*Math.random()));
 
@@ -105,7 +105,7 @@ class Grid extends Entity {
         var d = (s.x - p.x)*(s.x - p.x) + (s.y - p.y)*(s.y - p.y);
         mindist = Math.min(mindist, Math.sqrt(d));
       }
-      if (mindist < 100) continue;
+      if (mindist < 50) continue;
       points.push(p);
     }
     trace(attemps + ", " + points.length);
@@ -140,6 +140,13 @@ class Grid extends Entity {
         return 0;
       });
     }
+
+    for (e in Game.get("Station")) {
+      if (Math.random() < 0.1) {
+        new Enemy(e);
+      }
+    }
+
 
     drawTunnels();
   }
@@ -228,6 +235,60 @@ class Selection extends Entity {
   }
 }
 
+class Enemy extends Entity {
+  static var layer = 23;
+  var from: Station;
+  var to: Station;
+
+  override public function begin() {
+    from = args[0];
+    var s = Std.int(from.conn.length*Math.random());
+    to = from.conn[s];
+    pos.x = from.pos.x;
+    pos.y = from.pos.y;
+    angle = to.pos.distance(from.pos).angle;
+    gfx.clear();
+    gfx.fill(C.orange).line(2, C.orange).rect(0, 0, 34, 16);
+
+    addHitBox(Rect(0, 0, 34, 16));
+  }
+  static var TURNSPEED = 1.5;
+  static var ACCSPEED = 40.0;
+
+  override public function update() {
+    var d = to.pos.distance(pos);
+    var da = EMath.angledistance(d.angle, angle);
+    if (da > 0) da = Math.min(da, Math.PI*TURNSPEED*Game.time);
+    else if (da < 0) da = -Math.min(-da, Math.PI*TURNSPEED*Game.time);
+
+    angle += da;
+
+    if (Math.abs(da) < Math.PI/64*Game.time) {
+      var fulllength = d.length;
+      d.length = Math.min(fulllength, ACCSPEED*Game.time);
+      pos.add(d);
+      if (fulllength <= ACCSPEED*Game.time) {
+        var old = from;
+        from = to;
+        to = null;
+        var t = 1;
+        for (s in from.conn) {
+          if (to == null || to == old || Math.random() < 1.0/t) {
+            to = s;
+          }
+          t += 1;
+        }
+      }
+    }
+
+    var p: Train = Game.one("Train");
+    if (p != null && hit(p)) {
+      p.remove();
+      Game.endGame();
+    }
+  }
+}
+
 class Train extends Entity {
   static var layer = 25;
   var from: Station;
@@ -235,6 +296,7 @@ class Train extends Entity {
   var current: Selection;
   var selection: Int;
   var sel: Selection;
+  var fullspeed: Bool;
   public var passangers: Array<Int>;
   public var totalpassangers: Int;
 
@@ -251,30 +313,32 @@ class Train extends Entity {
     // one for each station type.
     passangers = [0, 0, 0];
     totalpassangers = 0;
+    fullspeed = false;
     draw();
+    addHitBox(Rect(0, 0, 34, 16));
   }
 
   public function draw() {
     gfx.clear();
-    gfx.fill(C.white).line(2, C.green).rect(0, 0, 58, 24);
+    gfx.fill(C.white).line(2, C.green).rect(0, 0, 34, 16);
 
     var pos = 0;
 
     for (i in 0...passangers[0]) {
-      var p = new Vec2(48 - 12*Std.int(pos/2), 7 + (pos%2)*10);
-      gfx.fill(C.white).line(1, C.green).circle(p.x, p.y, 3.5);
+      var p = new Vec2(27 - 7*Std.int(pos/2), 4.5 + (pos%2)*7);
+      gfx.fill(C.green).line(1, C.green).circle(p.x, p.y, 2.275);
       pos++;
     }
 
     for (i in 0...passangers[1]) {
-      var p = new Vec2(48 - 12*Std.int(pos/2), 7 + (pos%2)*10);
-      gfx.fill(C.white).line(1, C.green).rect(p.x - 4, p.y - 4, 8, 8);
+      var p = new Vec2(27 - 7*Std.int(pos/2), 4.5 + (pos%2)*7);
+      gfx.fill(C.green).line(1, C.green).rect(p.x - 2.6, p.y - 2.6, 5.2, 5.2);
       pos++;
     }
 
     for (i in 0...passangers[2]) {
-      var p = new Vec2(48 - 12*Std.int(pos/2), 7 + (pos%2)*10);
-      gfx.fill(C.white).line(1, C.green).mt(p.x, p.y - 3.5).lt(p.x + 4, p.y + 3.5).lt(p.x - 4, p.y + 3.5).lt(p.x, p.y - 3.5);
+      var p = new Vec2(27 - 7*Std.int(pos/2), 4.5 + (pos%2)*7);
+      gfx.fill(C.green).line(1, C.green).mt(p.x, p.y - 2.275).lt(p.x + 2.6, p.y + 2.275).lt(p.x - 2.6, p.y + 2.275).lt(p.x, p.y - 2.275);
       pos++;
     }
   }
@@ -293,10 +357,9 @@ class Train extends Entity {
   }
 
   static var TURNSPEED = 1.5;
-  static var ACCSPEED = 100.0;
+  static var ACCSPEED = 40.0;
 
   override public function update() {
-
     var d = to.pos.distance(pos);
     var da = EMath.angledistance(d.angle, angle);
     if (da > 0) da = Math.min(da, Math.PI*TURNSPEED*Game.time);
@@ -305,18 +368,16 @@ class Train extends Entity {
     angle += da;
 
     var acc = ACCSPEED;
-    if (to.type == from.type) {
-      acc *= 1.5;
+    if (Game.key.b1_pressed || Game.key.up_pressed) {
+      fullspeed = true;
     }
 
-    #if debug
-    if (Game.key.up) {
-      acc = 300;
+    if (fullspeed) {
+      acc = (to.type == from.type) ? 250 : 200;
     }
-    #end
 
     // break when getting closer to the station
-    acc *= Math.max(0.2, Math.min(1.0, to.pos.distance(pos).length/25.0));
+    // acc *= Math.max(0.2, Math.min(1.0, to.pos.distance(pos).length/25.0));
 
     if (Math.abs(da) < Math.PI/64*Game.time) {
       var fulllength = d.length;
@@ -328,6 +389,7 @@ class Train extends Entity {
         current.remove();
         from = to;
         to = to.conn[selection];
+        fullspeed = false;
         current = new Selection(from, to, C.green);
         var cur = to.pos.distance(from.pos).angle;
 
@@ -345,8 +407,8 @@ class Train extends Entity {
       }
     }
 
-    if (Game.key.left_pressed) select(selection - 1);
-    if (Game.key.right_pressed) select(selection + 1);
+    if (!fullspeed && Game.key.left_pressed) select(selection - 1);
+    if (!fullspeed && Game.key.right_pressed) select(selection + 1);
   }
 
 }
