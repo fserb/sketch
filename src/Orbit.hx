@@ -60,14 +60,21 @@ class Level extends Entity {
       Layer(55, "111111", "333333"),
       Layer(70, "121212", "535353"),
       ],
-
   ];
 
+  var layers: Array<Array<Chunk>>;
+  var dangle: Array<Float>;
+
   override public function begin() {
-    trace(args[0]);
     var data = DATA[args[0]];
 
+    layers = new Array<Array<Chunk>>();
+    dangle = new Array<Float>();
+
     for (layer in data) {
+      var l = new Array<Chunk>();
+      layers.push(l);
+      dangle.push(0.0);
       switch(layer) {
         case Layer(radius, pattern, weight):
           var total = pattern.length;
@@ -76,7 +83,8 @@ class Level extends Entity {
             var c = Std.parseInt(pattern.charAt(i));
             var w = Std.parseInt(weight.charAt(i));
             if (c != 0) {
-              new Chunk(radius, d, c, total, w);
+              var chk = new Chunk(radius, d, c, total, w);
+              l.push(chk);
               d += c;
             } else {
               d++;
@@ -84,7 +92,27 @@ class Level extends Entity {
         }
       }
     }
+    picklayer = 5.0/dangle.length;
     new Enemy();
+  }
+
+  var picklayer = 0.0;
+  override public function update() {
+    picklayer -= Game.time;
+    if (picklayer <= 0.0) {
+      picklayer += 5.0/dangle.length;
+      dangle[Std.int(Math.random()*dangle.length)] = 2*Math.PI*Math.random();
+    }
+
+    for (i in 0...layers.length) {
+      var ang = layers[i][0].angle;
+      if (ang == dangle[i]) continue;
+      var maxda = 5*Game.time;
+      var da = EMath.clamp(EMath.angledistance(ang, dangle[i]), -maxda, maxda);
+      for (c in layers[i]) {
+        c.angle -= da;
+       } 
+    }
   }
 }
 
@@ -97,7 +125,7 @@ class Player extends Entity {
     addHitBox(Rect(0, 0, 20, 22));        
   }
 
-  static var ANGSPEED = Math.PI/3.0;
+  static var ANGSPEED = Math.PI/4.0;
   var bulletTime = 1.0;
   override public function update() {
     if (Game.key.b1_pressed) {
@@ -190,6 +218,7 @@ class Chunk extends Entity {
     health = args[4];
 
     pos.x = pos.y = 0;
+    rotationcenter = new Vec2(240, 240);
     alignment = TOPLEFT;
 
     var delta = Math.PI/d - Math.PI/96;
@@ -229,32 +258,42 @@ class Enemy extends Entity {
       .fill(C.black).circle(20, 20, 10)
       .mt(20, 0).lt(30, 20).lt(10, 20).fill(null);
     addHitBox(Circle(20, 20, 17));
+    angle = Game.one("Player").angle + Math.PI;
   }
 
-  var bulletTime = 1.0;
+  var bulletTime = 1.5;
+  var order = 0;
+  static var BULLETDELAY = 0.3;
   override public function update() {
     var pl: Player = Game.one("Player");
     if (pl == null) return;
     var pangle = (pl.angle + Math.PI);
 
-    pangle += (pl.clockwise ? -1 : 1) * Math.PI/6;
+    if (order == 1) {
+      pangle += Math.PI/5;
+    } else if (order == 3) {
+      pangle -= Math.PI/5;
+    }
     pangle = (2*Math.PI + pangle) % (2*Math.PI);
 
     var da = EMath.angledistance(angle, pangle);
     var a = function(x:Float) { return Std.int(x*180/Math.PI); };
     if (da > 0) {
-      angvel -= 6*Game.time;
+      angvel -= 10*Game.time;
     } else if (da < 0) {
-      angvel += 6*Game.time;
+      angvel += 10*Game.time;
     }
-    angvel *= 0.95;
+    angvel *= 0.9;
     angle += angvel*Game.time;
 
     bulletTime -= Game.time;
 
-     if (Math.abs(da) <= Math.PI/6) {
+     if (Math.abs(da) <= Math.PI/32 || bulletTime < -BULLETDELAY) {
       if (bulletTime <= 0.0) {
-        bulletTime = 0.25;
+        if (bulletTime >= -BULLETDELAY) {
+          order = (order+1)%4;
+        }
+        bulletTime = BULLETDELAY;
         new EnemyBullet(this);
       }    
     }
