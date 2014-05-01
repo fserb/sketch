@@ -6,7 +6,6 @@
   - shield up (+ message)
   - enemy explode
   - level destroy / build
-- level number show
 - mid area turrets
 - random levels
 - less layers, more diversity
@@ -78,8 +77,10 @@ class Orbit extends Game {
 
 class Message extends Entity {
   static var layer = 500;
+  var startx = 0.0;
   var targetx = 0.0;
   static var current_ticks = 5.0;
+  var textwidth = 0.0;
 
   override public function begin() {
     var msg = args[0];
@@ -92,20 +93,21 @@ class Message extends Entity {
       return;
     }
     current_ticks = 0.0;
-    var w = (args[0].length+2)*12;
-    gfx.fill(C.black).rect(0, 0, w, 30).text(w/2, 15, msg, C.white, 2);
+
+    textwidth = (args[0].length+2)*12;
+    gfx.fill(C.black).rect(0, 0, textwidth, 30).text(textwidth/2, 15, msg, C.white, 2);
     alignment = TOPLEFT;
-    pos.x = 480;
-    targetx = 400 - w - 10;
+    pos.x = startx = -textwidth;
+    targetx = 0;
     pos.y = 15;
   }
 
   override public function update() {
     current_ticks = ticks;
-    pos.x = 480 + Math.min(1.0, Ease.quadIn(ticks/0.75))*(targetx-480);
+    pos.x = startx + Math.min(1.0, Ease.quadIn(ticks/0.75))*(targetx-startx);
 
     if (ticks >= 3.0) {
-      pos.x = targetx + Math.min(1.0, Ease.quadIn((ticks - 3.0)/0.75))*(480-targetx);
+      pos.x = targetx + Math.min(1.0, Ease.quadIn((ticks - 3.0)/0.75))*(startx-targetx);
     }
     if (ticks >= 4.0) {
       remove();
@@ -118,7 +120,7 @@ class Scorer extends Entity {
   var lastscore = -1;
   override public function begin() {
     pos.x = 400;
-    pos.y = 15;
+    pos.y = 480 - 30 - 15;
     alignment = TOPLEFT;
   }
 
