@@ -2,10 +2,12 @@
 
 /*
 - score
+- add one shield
 - explosions
 - level transitions 
 - mid area turrets
-
+- less layers, more diversity
+- feedback on Chunk heal
 
 */
 
@@ -24,7 +26,6 @@ class C {
   static public var white = 0xecebec;
   static public var black = 0x222222;
   static public var color = 0x8232cd;
-
 }
 
 class Orbit extends Game {
@@ -277,7 +278,7 @@ class Chunk extends Entity {
   }
 
   override public function update() {
-    health = Math.min(maxHealth, health + Game.time/7.0);
+    // health = Math.min(maxHealth, health + Game.time/7.0);
     draw();
     for (b in Game.get("Bullet")) {
       if (hit(b)) {
@@ -296,7 +297,7 @@ class Enemy extends Entity {
   static var layer = 60;
 
   var angvel = 0.0;
-  var bulletDelay = 0.5;
+  var bulletDelay = 0.75;
   override public function begin() {
     pos.x = pos.y = 240;
     gfx
@@ -325,18 +326,18 @@ class Enemy extends Entity {
     var vel_count = 0;
     var prev = lastPos.first();
     for (e in lastPos.iterator()) {
-      var v = (e - prev)/Game.time;
-      vel += v;
-      vel_count ++;
+      vel += EMath.angledistance(prev, e);
+      vel_count++;
       prev = e;
     }
     if (vel_count > 0) {
       vel = vel/vel_count;
     }
+    vel /= Game.time;
     vel *= lastPos.length/60.0;
     vel *= 200/300;
 
-    pangle += vel;
+    pangle -= vel;
 
     var normal = Math.sqrt(-2 * Math.log(Math.random())) * Math.cos(Math.random()*2*Math.PI);
     pangle += normal*Math.PI/32;
