@@ -2,8 +2,6 @@
 
 /*
 - mid area turrets
-- random levels
-- less layers, more diversity
 - better condition for new shield
 
 */
@@ -46,7 +44,6 @@ class Orbit extends Game {
     level = -1;
     score = 0.0;
     transition = true;
-    // level = 3;
     nextLevel();
   }
 
@@ -104,7 +101,9 @@ class Orbit extends Game {
   }
 
   override public function update() {
-    score += Game.time/2.0;
+    if (!transition) {
+      score += Game.time/2.0;
+    }
   }
 }
 
@@ -185,11 +184,34 @@ enum LevelData {
 }
 
 class Level extends Entity {
+  static var HARDLAYERS: Array<LevelData> = [
+    Layer("1", "5"),
+    Layer("111", "555"),
+    Layer("11111", "33333"),
+    Layer("111111111", "3333333333"),
+    Layer("111111111111", "333333333333"),
+    Layer("121212", "535353"),
+    Layer("131313", "151515"),
+    Layer("151515", "151515"),
+    Layer("15551555", "15551555"),
+    Layer("133133133133", "155155155155"),
+    Layer("111111111111", "151515151515"),
+  ];
+
   static var DATA: Array<Array<LevelData>> = [ 
     [ Layer("11111111", "22222222") ],
 
     [ Layer("1111", "2222"),
-      Layer("11111111", "12121212"),
+      Layer("11111111", "22222222"),
+     ],
+
+    [ Layer("151515", "151515"),
+      Layer("333333333333", "333333333333"),
+     ],
+
+    [ Layer("151515", "151515"),
+      Layer("313131", "313131"),
+      Layer("111111", "222222"),
      ],
 
     [ Layer("1", "5"),
@@ -213,8 +235,25 @@ class Level extends Entity {
   public var layers: Array<Array<Chunk>>;
   var dangle: Array<Float>;
 
+  function buildLevel(lvl: Int): Array<LevelData> {
+    var array = new Array<LevelData>();
+    var layers = EMath.min(8, Std.int(3 + Math.sqrt(1 + lvl - DATA.length)));
+
+    for (i in 0...layers) {
+      array.push(HARDLAYERS[Std.int(HARDLAYERS.length*Math.random())]);
+    }
+    return array;
+  }
+
   override public function begin() {
-    var data = DATA[args[0]];
+    var lvl = args[0];
+    var data: Array<LevelData>;
+
+    if (lvl < DATA.length) {
+      data = DATA[args[0]];
+    } else {
+      data = buildLevel(lvl);
+    }
 
     layers = new Array<Array<Chunk>>();
     dangle = new Array<Float>();
@@ -315,7 +354,7 @@ class Player extends Entity {
       angle += ANGSPEED*Game.time;
     }
 
-    if (Game.key.b2_pressed) {
+    if (Game.key.b2_pressed && !Game.main.transition) {
       Game.main.finishLevel();
     }
 
