@@ -2,13 +2,13 @@
 
 /*
 - effects:
-  - shield explode
-  - shield up (+ message)
   - enemy explode
-  - level destroy / build
+  - shield explode
+  - shield up
 - mid area turrets
 - random levels
 - less layers, more diversity
+- better condition for new shield
 
 */
 
@@ -34,6 +34,7 @@ class C {
 class Orbit extends Game {
   var level = 0;
   var score: Float;
+  public var transition = false;
 
   static public function main() {
     Game.baseColor = 0xFFFFFF;
@@ -48,6 +49,7 @@ class Orbit extends Game {
     new Scorer();
     level = -1;
     score = 0.0;
+    transition = true;
     // level = 3;
     nextLevel();
   }
@@ -57,17 +59,48 @@ class Orbit extends Game {
     new Score(score, true);
   }
 
-  public function nextLevel() {
-    for (g in [ "Bullet", "Enemy", "Chunk", "Level" ]) {
-      for (e in Game.get(g)) {
-        e.remove();
+  public function finishLevel() {
+    Game.one("Enemy").explode();
+
+    var lvl:Level = Game.one("Level");
+    transition = true;
+    new Timer().every(0.1).run(function() {
+      for (i in 0...lvl.layers.length) {
+        for (c in lvl.layers[i]) {
+          if (c.health > 0.0) {
+            c.gotoHealth = 0.0;
+            return true;
+          }
+        }
       }
-    }
+      for (g in [ "Bullet", "Enemy", "Chunk", "Level" ]) {
+        for (e in Game.get(g)) {
+          e.remove();
+        }
+      }
+      nextLevel();
+      return false;
+    });
+  }
+
+  public function nextLevel() {
     if (level > 0) {
       score += (level+1)*(level+1);
     }
-
-    new Level(++level);
+    new Message("Level " + (level+1));
+    var lvl = new Level(++level);
+    new Timer().every(0.1).run(function() {
+      for (i in 0...lvl.layers.length) {
+        for (c in lvl.layers[i]) {
+          if (c.health <= 0.0) {
+            c.gotoHealth = c.maxHealth;
+            return true;
+          }
+        }
+      }
+      transition = false;
+      return false;
+    });
   }
 
   override public function update() {
@@ -177,11 +210,10 @@ class Level extends Entity {
       Layer("111111111111", "333333333333") ],
   ];
 
-  var layers: Array<Array<Chunk>>;
+  public var layers: Array<Array<Chunk>>;
   var dangle: Array<Float>;
 
   override public function begin() {
-    new Message("Level " + (args[0] + 1));
     var data = DATA[args[0]];
 
     layers = new Array<Array<Chunk>>();
@@ -213,7 +245,9 @@ class Level extends Entity {
         }
       }
       radius += 15;
+      vault.Utils.shuffle(l);
     }
+
     picklayer = 12.0/dangle.length;
     new Enemy();
   }
@@ -282,7 +316,7 @@ class Player extends Entity {
     }
 
     if (Game.key.b2_pressed) {
-      Game.main.score += 40;
+      Game.main.finishLevel();
     }
 
     radius = Math.max(200, radius - 10*Game.time/0.2);
@@ -291,7 +325,9 @@ class Player extends Entity {
     pos.x = 240 + radius*Math.cos(angle + Math.PI/2.0);
     pos.y = 240 + radius*Math.sin(angle + Math.PI/2.0);
 
-    bulletTime -= Game.time;
+    if (!Game.main.transition) {
+      bulletTime -= Game.time;
+    }
     if (bulletTime <= 0.0) {
       bulletTime += 0.5;
       var firepos = new Vec2(-2, -12);
@@ -344,15 +380,14 @@ class Bullet extends Entity {
     }
 
     if (hit(Game.one("Enemy"))) {
-      remove();
-      Game.one("Enemy").remove();
-      Game.main.nextLevel(); 
+      explode();
+      Game.main.finishLevel(); 
     }
   }
 }
 
 class Chunk extends Entity {
-  static var layer = 50;
+  static var layer = 9;
 
   function arc(arr: Array<Vec2>, x:Float, y:Float, r:Float, b:Float, e:Float) {
     var segments = Math.ceil(Math.abs(e-b)/(Math.PI/8));
@@ -380,8 +415,10 @@ class Chunk extends Entity {
     return Polygon(arr);
   }  
 
-  var maxHealth: Float;
-  var health: Float;
+  public var maxHealth: Float;
+  public var health: Float;
+  public var gotoHealth: Float;
+
   var arc_begin: Float;
   var arc_end: Float;
   var radius: Float;
@@ -391,7 +428,9 @@ class Chunk extends Entity {
     var begin: Int = args[1];
     var size: Int = args[2];
     var d: Int = args[3];
-    maxHealth = health = args[4];
+    maxHealth = args[4];
+    health = 0.0;
+    gotoHealth = -1.0;
 
     pos.x = pos.y = 0;
     rotationcenter = new Vec2(240, 240);
@@ -400,10 +439,9 @@ class Chunk extends Entity {
     var delta = Math.PI/d - Math.PI/96;
     arc_begin = 2*Math.PI*begin/d - delta;
     arc_end = 2*Math.PI*(begin + size - 1)/d + delta;
-    draw();
   }
 
-  function draw() {
+  public function draw() {
     var r = (3 + 9*health/5.0)/2.0;
     gfx.clear().fill(vault.Utils.colorLerp(C.color, C.black, health/5.0))
       .arc(240, 240, radius - r, radius + r, arc_begin, arc_end).fill();
@@ -417,6 +455,13 @@ class Chunk extends Entity {
     if (p.length != 0) {
       p.clamp(50*Game.time);
       pos.add(p);
+    }
+
+    if (gotoHealth >= 0.0) {
+      var dh = EMath.clamp(gotoHealth - health, -Game.time/0.05, Game.time/0.2);
+      health += dh;
+      if (dh == 0) gotoHealth = -1.0;
+      draw();
     }
 
     for (e in Game.get("Bullet")) {
@@ -452,7 +497,7 @@ class Chunk extends Entity {
 }
 
 class Enemy extends Entity {
-  static var layer = 9;
+  static var layer = 8;
 
   var angvel = 0.0;
   var bulletDelay = 0.75;
@@ -465,6 +510,15 @@ class Enemy extends Entity {
     addHitBox(Circle(20, 20, 17));
     angle = Game.one("Player").angle + Math.PI;
     lastPos = new List<Float>();
+  }
+
+  public function explode() {
+    remove();
+    new Particle().color(C.black).size(2, 10).xy(240, 240)
+      .count(200)
+      .duration(0.5)
+      .direction(0, 2*Math.PI)
+      .speed(200);    
   }
 
   var bulletTime = 1.5;
@@ -513,13 +567,15 @@ class Enemy extends Entity {
     angvel *= 0.9;
     angle += angvel*Game.time;
 
-    bulletTime -= Game.time;
+    if (!Game.main.transition) {
+      bulletTime -= Game.time;
+    }
 
-      if (bulletTime <= 0.0) {
-        bulletTime = bulletDelay;
-        new EnemyBullet(this);
-        new Sound("enemy bullet").play();
-      }    
+    if (bulletTime <= 0.0) {
+      bulletTime = bulletDelay;
+      new EnemyBullet(this);
+      new Sound("enemy bullet").play();
+    }    
   }
 }
 
