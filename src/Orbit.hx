@@ -1,11 +1,5 @@
 //@ ugl.bgcolor = 0x8232cd
 
-/*
-- mid area turrets
-- better condition for new shield
-
-*/
-
 import vault.ugl.*;
 import flash.geom.Point;
 import flash.geom.Rectangle;
@@ -64,6 +58,7 @@ class Orbit extends Game {
           for (c in lvl.layers[i]) {
             if (c.health > 0.0) {
               c.gotoHealth = 0.0;
+              score += c.health*(1+i);
               return true;
             }
           }
@@ -81,10 +76,14 @@ class Orbit extends Game {
   }
 
   public function nextLevel() {
-    if (level > 0) {
-      score += (level+1)*(level+1);
-    }
     new Message("Level " + (level+1));
+    var pl: Player = Game.one("Player");
+    if (!pl.shield) {
+      pl.addShield();
+    } else if(level > 0) {
+      score += 50;
+    }
+
     var lvl = new Level(++level);
     new Timer().every(0.05).run(function() {
       for (i in 0...lvl.layers.length) {
@@ -151,7 +150,7 @@ class Scorer extends Entity {
   static var layer = 501;
   var lastscore = -1;
   override public function begin() {
-    pos.x = 400;
+    pos.x = 380;
     pos.y = 480 - 30 - 15;
     alignment = TOPLEFT;
   }
@@ -160,20 +159,11 @@ class Scorer extends Entity {
     var score = Std.int(Game.main.score);
     if (score == lastscore) return;
 
-    gfx.clear().fill(C.black).rect(0, 0, 80, 30).text(40, 15, ""+score, C.white, 2);
+    gfx.clear().fill(C.black).rect(0, 0, 100, 30).text(50, 15, ""+score, C.white, 2);
     new Score(score, false);
 
     var last50 = Std.int(lastscore/100);
     var cur50 = Std.int(score/100);
-
-    if (last50 != cur50) {
-      var pl: Player = Game.one("Player");
-      if (!pl.shield) {
-        pl.addShield();
-        new Message("+shield");
-      }
-
-    }
 
     lastscore = score;
   }
