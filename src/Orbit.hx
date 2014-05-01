@@ -64,7 +64,7 @@ class Orbit extends Game {
   }
 
   override public function final() {
-  }  
+  }
 
   public function finishLevel(gameOver = false) {
     if (!gameOver) {
@@ -80,7 +80,9 @@ class Orbit extends Game {
           for (c in lvl.layers[i]) {
             if (c.health > 0.0) {
               c.gotoHealth = 0.0;
-              score += c.health*(1+i);
+              if (!gameOver) {
+                score += c.health*(1+i);
+              }
               return true;
             }
           }
@@ -201,7 +203,7 @@ class Scorer extends Entity {
   }
 }
 
-enum LevelData {  
+enum LevelData {
   Layer(pattern: String, weight: String);
 }
 
@@ -220,7 +222,7 @@ class Level extends Entity {
     Layer("111111111111", "151515151515"),
   ];
 
-  static var DATA: Array<Array<LevelData>> = [ 
+  static var DATA: Array<Array<LevelData>> = [
     [ Layer("11111111", "22222222") ],
 
     [ Layer("1111", "2222"),
@@ -328,7 +330,7 @@ class Level extends Entity {
       var da = EMath.clamp(EMath.angledistance(ang, dangle[i]), -maxda, maxda);
       for (c in layers[i]) {
         c.angle -= da;
-       } 
+       }
     }
   }
 }
@@ -342,12 +344,12 @@ class Player extends Entity {
 
   override public function begin() {
     draw();
-    addHitBox(Rect(7, 5, 20, 22));        
+    addHitBox(Rect(7, 5, 20, 22));
   }
 
   function draw() {
     gfx.clear();
-    gfx.fill(C.white).mt(17, 5).lt(27, 27).lt(17, 21).lt(7, 27).fill(null); 
+    gfx.fill(C.white).mt(17, 5).lt(27, 27).lt(17, 21).lt(7, 27).fill(null);
     if (shield) {
       gfx.line(3, C.halfwhite).circle(17, 17, 17).line(null);
     }
@@ -370,7 +372,7 @@ class Player extends Entity {
   var bulletTime = 1.0;
   override public function update() {
     if (Game.key.b1_pressed || Game.mouse.button_pressed) {
-      clockwise = !clockwise;  
+      clockwise = !clockwise;
     }
 
     if (clockwise) {
@@ -410,7 +412,7 @@ class Bullet extends Entity {
     angle = args[1];
     vel.length = 300;
     vel.angle = angle - Math.PI/2;
-    addHitBox(Rect(0, 0, 10, 12));    
+    addHitBox(Rect(0, 0, 10, 12));
     gfx.cache(0).fill(C.white).circle(6, 6, 6);
   }
 
@@ -431,7 +433,7 @@ class Bullet extends Entity {
         remove();
       }
       return;
-    } 
+    }
 
     {
       if (ticks > 0.06) {
@@ -441,7 +443,7 @@ class Bullet extends Entity {
 
     if (hit(Game.one("Enemy"))) {
       explode();
-      Game.main.finishLevel(); 
+      Game.main.finishLevel();
     }
   }
 }
@@ -466,14 +468,14 @@ class Chunk extends Entity {
       // draw the circle segment
       arr.push(new Vec2(px, py));
     }
-  }  
+  }
 
   function arcHitBox(r1: Float, r2: Float, begin: Float, end: Float): Entity.HitType {
     var arr = new Array<Vec2>();
     arc(arr, 240, 240, r1, begin, end);
     arc(arr, 240, 240, r2, end, begin);
     return Polygon(arr);
-  }  
+  }
 
   public var maxHealth: Float;
   public var health: Float;
@@ -555,7 +557,7 @@ class Chunk extends Entity {
         }
       }
     }
-  }  
+  }
 }
 
 class Enemy extends Entity {
@@ -581,7 +583,7 @@ class Enemy extends Entity {
       .count(100)
       .duration(0.5)
       .direction(0, 2*Math.PI)
-      .speed(50, 50);    
+      .speed(50, 50);
   }
 
   var bulletTime = 1.5;
@@ -638,7 +640,7 @@ class Enemy extends Entity {
       bulletTime = bulletDelay;
       new EnemyBullet(this);
       new Sound("enemy bullet").play();
-    }    
+    }
   }
 }
 
@@ -654,7 +656,7 @@ class EnemyBullet extends Entity {
     angle = p.angle;
     vel.length = 300;
     vel.angle = p.angle - Math.PI/2;
-    addHitBox(Rect(0, 0, 10, 12));    
+    addHitBox(Rect(0, 0, 10, 12));
   }
 
   override public function update() {
