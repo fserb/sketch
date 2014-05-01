@@ -1,10 +1,6 @@
 //@ ugl.bgcolor = 0x8232cd
 
 /*
-- effects:
-  - enemy explode
-  - shield explode
-  - shield up
 - mid area turrets
 - random levels
 - less layers, more diversity
@@ -61,24 +57,28 @@ class Orbit extends Game {
 
   public function finishLevel() {
     Game.one("Enemy").explode();
+    Game.delay(0.05);
 
     var lvl:Level = Game.one("Level");
     transition = true;
-    new Timer().every(0.1).run(function() {
-      for (i in 0...lvl.layers.length) {
-        for (c in lvl.layers[i]) {
-          if (c.health > 0.0) {
-            c.gotoHealth = 0.0;
-            return true;
+    new Timer().delay(0.75).run(function() {
+      new Timer().every(0.05).run(function() {
+        for (i in 0...lvl.layers.length) {
+          for (c in lvl.layers[i]) {
+            if (c.health > 0.0) {
+              c.gotoHealth = 0.0;
+              return true;
+            }
           }
         }
-      }
-      for (g in [ "Bullet", "Enemy", "Chunk", "Level" ]) {
-        for (e in Game.get(g)) {
-          e.remove();
+        for (g in [ "Bullet", "Enemy", "Chunk", "Level" ]) {
+          for (e in Game.get(g)) {
+            e.remove();
+          }
         }
-      }
-      nextLevel();
+        nextLevel();
+        return false;
+      });
       return false;
     });
   }
@@ -89,7 +89,7 @@ class Orbit extends Game {
     }
     new Message("Level " + (level+1));
     var lvl = new Level(++level);
-    new Timer().every(0.1).run(function() {
+    new Timer().every(0.05).run(function() {
       for (i in 0...lvl.layers.length) {
         for (c in lvl.layers[i]) {
           if (c.health <= 0.0) {
@@ -515,10 +515,10 @@ class Enemy extends Entity {
   public function explode() {
     remove();
     new Particle().color(C.black).size(2, 10).xy(240, 240)
-      .count(200)
+      .count(100)
       .duration(0.5)
       .direction(0, 2*Math.PI)
-      .speed(200);    
+      .speed(50, 50);    
   }
 
   var bulletTime = 1.5;
@@ -607,8 +607,9 @@ class EnemyBullet extends Entity {
     var pl: Player = Game.one("Player");
     if (hit(pl)) {
       remove();
+      Game.flash(C.white);
       if (pl.shield) {
-        // pl.removeShield();
+        pl.removeShield();
       } else {
         Game.endGame();
       }
