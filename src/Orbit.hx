@@ -1,13 +1,15 @@
 //@ ugl.bgcolor = 0x8232cd
 
 /*
-- add one shield
-- explosions
-- level transitions 
+- effects:
+  - shield explode
+  - shield up (+ message)
+  - enemy explode
+  - level destroy / build
+- level number show
 - mid area turrets
 - random levels
 - less layers, more diversity
-- feedback on Chunk heal
 
 */
 
@@ -26,6 +28,8 @@ class C {
   static public var white = 0xecebec;
   static public var black = 0x222222;
   static public var color = 0x8232cd;
+  static public var halfwhite = vault.Utils.colorLerp(white, color, 0.75);
+  static public var halfblack = vault.Utils.colorLerp(black, color, 0.75);
 }
 
 class Orbit extends Game {
@@ -42,7 +46,7 @@ class Orbit extends Game {
   }
   override public function begin() {
     new Player();
-    new ScoreDisplay();
+    new Scorer();
     level = -1;
     score = 0.0;
     // level = 3;
@@ -68,24 +72,76 @@ class Orbit extends Game {
   }
 
   override public function update() {
-    score += Game.time/5.0;
+    score += Game.time/2.0;
   }
 }
 
-class ScoreDisplay extends Entity {
+class Message extends Entity {
+  static var layer = 500;
+  var targetx = 0.0;
+  static var current_ticks = 5.0;
+
+  override public function begin() {
+    var msg = args[0];
+    if (current_ticks < 4.0) {
+      remove();
+      new Timer().delay(4.0 - current_ticks + 0.1).run(function() {
+        new Message(msg);
+        return true;
+      });
+      return;
+    }
+    current_ticks = 0.0;
+    var w = (args[0].length+2)*12;
+    gfx.fill(C.black).rect(0, 0, w, 30).text(w/2, 15, msg, C.white, 2);
+    alignment = TOPLEFT;
+    pos.x = 480;
+    targetx = 400 - w - 10;
+    pos.y = 15;
+  }
+
+  override public function update() {
+    current_ticks = ticks;
+    pos.x = 480 + Math.min(1.0, Ease.quadIn(ticks/0.75))*(targetx-480);
+
+    if (ticks >= 3.0) {
+      pos.x = targetx + Math.min(1.0, Ease.quadIn((ticks - 3.0)/0.75))*(480-targetx);
+    }
+    if (ticks >= 4.0) {
+      remove();
+    }
+  }
+}
+
+class Scorer extends Entity {
+  static var layer = 501;
   var lastscore = -1;
   override public function begin() {
-    pos.x = 0;
-    pos.y = 430;
+    pos.x = 400;
+    pos.y = 15;
     alignment = TOPLEFT;
   }
 
   override public function update() {
-    var s = Std.int(Game.main.score);
-    if (s == lastscore) return;
-    gfx.clear().fill(C.black).rect(0, 0, 80, 30).text(40, 15, ""+s, C.white, 2);
-    lastscore = s;
-    new Score(s, false);
+    var score = Std.int(Game.main.score);
+    if (score == lastscore) return;
+
+    gfx.clear().fill(C.black).rect(0, 0, 80, 30).text(40, 15, ""+score, C.white, 2);
+    new Score(score, false);
+
+    var last50 = Std.int(lastscore/100);
+    var cur50 = Std.int(score/100);
+
+    if (last50 != cur50) {
+      var pl: Player = Game.one("Player");
+      if (!pl.shield) {
+        pl.addShield();
+        new Message("+shield");
+      }
+
+    }
+
+    lastscore = score;
   }
 }
 
@@ -123,6 +179,7 @@ class Level extends Entity {
   var dangle: Array<Float>;
 
   override public function begin() {
+    new Message("Level " + (args[0] + 1));
     var data = DATA[args[0]];
 
     layers = new Array<Array<Chunk>>();
@@ -183,11 +240,30 @@ class Player extends Entity {
   static var layer = 70;
 
   var radius = 200.0;
+  public var shield = true;
   public var clockwise = false;
 
   override public function begin() {
-    gfx.fill(C.white).mt(10, 0).lt(20, 22).lt(10, 16).lt(0, 22); 
-    addHitBox(Rect(0, 0, 20, 22));        
+    draw();
+    addHitBox(Rect(7, 5, 20, 22));        
+  }
+
+  function draw() {
+    gfx.clear();
+    gfx.fill(C.white).mt(17, 5).lt(27, 27).lt(17, 21).lt(7, 27).fill(null); 
+    if (shield) {
+      gfx.line(3, C.halfwhite).circle(17, 17, 17).line(null);
+    }
+  }
+
+  public function addShield() {
+    shield = true;
+    draw();
+  }
+
+  public function removeShield() {
+    shield = false;  
+    draw();
   }
 
   static var ANGSPEED = Math.PI/4.0;
@@ -197,12 +273,14 @@ class Player extends Entity {
       clockwise = !clockwise;  
     }
 
-    if (!Game.key.b2) {
-      if (clockwise) {
-        angle -= ANGSPEED*Game.time;
-      } else {
-        angle += ANGSPEED*Game.time;
-      }
+    if (clockwise) {
+      angle -= ANGSPEED*Game.time;
+    } else {
+      angle += ANGSPEED*Game.time;
+    }
+
+    if (Game.key.b2_pressed) {
+      Game.main.score += 40;
     }
 
     radius = Math.max(200, radius - 10*Game.time/0.2);
@@ -214,30 +292,53 @@ class Player extends Entity {
     bulletTime -= Game.time;
     if (bulletTime <= 0.0) {
       bulletTime += 0.5;
-      new Bullet(this);
+      var firepos = new Vec2(-2, -12);
+      firepos.rotate(angle);
+      firepos.add(pos);
+      new Bullet(firepos, angle);
       new Sound("player bullet").play();
-      radius += 10;
+      radius += 20;
     }
   }
 }
 
 class Bullet extends Entity {
   static var layer = 101;
+  public var removeIn = 0.0;
 
   override public function begin() {
-    var p: Player = args[0];
-    pos.x = p.pos.x;
-    pos.y = p.pos.y;
-    gfx.fill(C.white).mt(3, 0).lt(0, 10).lt(0, 12).lt(6, 12).lt(6, 10);
-    angle = p.angle;
+    pos.x = args[0].x;
+    pos.y = args[0].y;
+    angle = args[1];
     vel.length = 300;
-    vel.angle = p.angle - Math.PI/2;
+    vel.angle = angle - Math.PI/2;
     addHitBox(Rect(0, 0, 10, 12));    
+    gfx.cache(0).fill(C.white).circle(6, 6, 6);
+  }
+
+  public function explode() {
+    gfx.cache(2).fill(C.halfblack).circle(12, 12, 12);
+    vel.x = vel.y = 0;
+    removeIn = 0.05;
   }
 
   override public function update() {
     if (pos.x < 0 || pos.y < 0 || pos.x > 480 || pos.y > 480) {
       remove();
+    }
+
+    if (removeIn > 0) {
+      removeIn -= Game.time;
+      if (removeIn <= 0.0) {
+        remove();
+      }
+      return;
+    } 
+
+    {
+      if (ticks > 0.06) {
+        gfx.cache(1).fill(C.white).mt(3, 0).lt(0, 10).lt(0, 12).lt(6, 12).lt(6, 10);
+      }
     }
 
     if (hit(Game.one("Enemy"))) {
@@ -250,6 +351,7 @@ class Bullet extends Entity {
 
 class Chunk extends Entity {
   static var layer = 50;
+
   function arc(arr: Array<Vec2>, x:Float, y:Float, r:Float, b:Float, e:Float) {
     var segments = Math.ceil(Math.abs(e-b)/(Math.PI/8));
     var theta = -(e-b)/segments;
@@ -308,16 +410,39 @@ class Chunk extends Entity {
   }
 
   override public function update() {
-    // health = Math.min(maxHealth, health + Game.time/7.0);
-    draw();
-    for (b in Game.get("Bullet")) {
+    var p = new Vec2(0, 0);
+    p.sub(pos);
+    if (p.length != 0) {
+      p.clamp(50*Game.time);
+      pos.add(p);
+    }
+
+    for (e in Game.get("Bullet")) {
+      var b: Bullet = cast e;
+      if (b.removeIn > 0) continue;
       if (hit(b)) {
-        b.remove();
+        b.explode();
+
         health -= 1;
         draw();
         if (health <= 0.2) {
           Game.main.score += maxHealth;
           remove();
+          var ang = b.angle - Math.PI/2;
+          var diff = (arc_end - arc_begin);
+          new Particle().color(vault.Utils.colorLerp(C.color, C.black, 1.0/5.0))
+            .xy(240 + (-radius)*Math.cos(ang), 240 + (-radius)*Math.sin(ang))
+            .size(6)
+            .count(diff*100/(2*Math.PI))
+            .duration(0.2)
+            .direction(ang - diff, 2*diff)
+            .speed(200);
+          Game.shake(0.2);
+        } else {
+          var p = new Vec2(8/health, 0);
+          p.angle = b.angle - Math.PI/2;
+          pos.add(p);
+          Game.shake(0.05);
         }
       }
     }
@@ -325,7 +450,7 @@ class Chunk extends Entity {
 }
 
 class Enemy extends Entity {
-  static var layer = 60;
+  static var layer = 9;
 
   var angvel = 0.0;
   var bulletDelay = 0.75;
@@ -334,7 +459,7 @@ class Enemy extends Entity {
     gfx
       .fill(C.color).rect(0, 0, 40, 40)
       .fill(C.black).circle(20, 20, 10)
-      .mt(20, 0).lt(30, 20).lt(10, 20).fill(null);
+      .fill(C.black).mt(20, 0).lt(30, 20).lt(10, 20).fill(null);
     addHitBox(Circle(20, 20, 17));
     angle = Game.one("Player").angle + Math.PI;
     lastPos = new List<Float>();
@@ -402,7 +527,9 @@ class EnemyBullet extends Entity {
   override public function begin() {
     var p: Enemy = args[0];
     pos.x = pos.y = 240;
-    gfx.fill(0x000000).mt(3, 0).lt(0, 10).lt(0, 12).lt(6, 12).lt(6, 10);
+
+    gfx.cache(0).fill(0x000000).circle(6, 6, 6);
+
     angle = p.angle;
     vel.length = 300;
     vel.angle = p.angle - Math.PI/2;
@@ -413,9 +540,20 @@ class EnemyBullet extends Entity {
     if (pos.x < 0 || pos.y < 0 || pos.x > 480 || pos.y > 480) {
       remove();
     }
-    if (hit(Game.one("Player"))) {
+
+    if (ticks > 0.06) {
+      gfx.cache(1).fill(0x000000).mt(3, 0).lt(0, 10).lt(0, 12).lt(6, 12).lt(6, 10);
+    }
+
+
+    var pl: Player = Game.one("Player");
+    if (hit(pl)) {
       remove();
-      Game.endGame();
+      if (pl.shield) {
+        // pl.removeShield();
+      } else {
+        Game.endGame();
+      }
     }
 
     var b = hitGroup("Bullet");
