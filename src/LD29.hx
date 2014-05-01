@@ -38,11 +38,10 @@ class LD29 extends Game {
   var displayScore: Scorer;
   static public function main() {
     Game.baseColor = 0x000000;
-    new LD29("You are a metro car", "a LD29 game by Fernando Serboncini");
-
     new Sound("reach").coin(82);
     new Sound("timeup").vol(0.1).explosion(4073);
     new Sound("explosion").explosion(4005);
+    new LD29("You are a metro car", "a LD29 game by Fernando Serboncini");
   }
 
   var mission: Mission;
