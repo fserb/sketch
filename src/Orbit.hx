@@ -26,13 +26,19 @@ class Orbit extends Game {
 
   static public function main() {
     Game.baseColor = 0xFFFFFF;
-    new Orbit("Orbit", "");
     new Sound("player exp").explosion(1032);
     new Sound("player bullet").vol(0.15).laser(1350);
-    new Sound("bullet exp").explosion(1002);
-    new Sound("enemy bullet").vol(0.1).laser(1006);
+    new Sound("bullet exp").vol(0.1).explosion(1002);
+    new Sound("enemy bullet").vol(0.075).laser(1006);
+    new Sound("shield exp").explosion(39969);
+    new Sound("enemy exp").explosion(81796);
+    new Sound("build up").powerup(31331);
+    new Sound("chunk hit").vol(0.1).hit(95446);
+
+    new Orbit("Orbit", "");
   }
   override public function begin() {
+    Message.current_ticks = 5.0;
     new Player();
     new Scorer();
     level = -1;
@@ -42,13 +48,32 @@ class Orbit extends Game {
   }
 
   override public function end() {
-    Game.one("Player").remove();
+    var pl: Player = Game.one("Player");
+    if (pl.dead) return;
+
+    pl.remove();
+    new Sound("player exp").play();
+    new Particle().color(C.white).count(70, 20).xy(pl.pos.x, pl.pos.y)
+      .size(3, 10).speed(5, 25).duration(2.0, 0.5);
+    Game.delay(0.05);
+    Game.shake(0.5);
+
+    new Timer().delay(0.5).run(function() {
+      finishLevel(true);
+      return false;
+    });
+    new Message("game over");
     new Score(score, true);
   }
 
-  public function finishLevel() {
-    Game.one("Enemy").explode();
-    Game.delay(0.05);
+  override public function final() {
+  }  
+
+  public function finishLevel(gameOver = false) {
+    if (!gameOver) {
+      Game.one("Enemy").explode();
+      Game.delay(0.05);
+    }
 
     var lvl:Level = Game.one("Level");
     transition = true;
@@ -68,7 +93,9 @@ class Orbit extends Game {
             e.remove();
           }
         }
-        nextLevel();
+        if (!gameOver) {
+          nextLevel();
+        }
         return false;
       });
       return false;
@@ -76,7 +103,8 @@ class Orbit extends Game {
   }
 
   public function nextLevel() {
-    new Message("Level " + (level+1));
+    level++;
+    new Message("level " + (level+1));
     var pl: Player = Game.one("Player");
     if (!pl.shield) {
       pl.addShield();
@@ -84,7 +112,8 @@ class Orbit extends Game {
       score += 50;
     }
 
-    var lvl = new Level(++level);
+    var lvl = new Level(level);
+    new Sound("build up").play();
     new Timer().every(0.05).run(function() {
       for (i in 0...lvl.layers.length) {
         for (c in lvl.layers[i]) {
@@ -110,8 +139,9 @@ class Message extends Entity {
   static var layer = 500;
   var startx = 0.0;
   var targetx = 0.0;
-  static var current_ticks = 5.0;
+  static public var current_ticks = 5.0;
   var textwidth = 0.0;
+  var hold = false;
 
   override public function begin() {
     var msg = args[0];
@@ -124,6 +154,7 @@ class Message extends Entity {
       return;
     }
     current_ticks = 0.0;
+    hold = (msg == "game over");
 
     textwidth = (args[0].length+2)*12;
     gfx.fill(C.black).rect(0, 0, textwidth, 30).text(textwidth/2, 15, msg, C.white, 2);
@@ -134,14 +165,18 @@ class Message extends Entity {
   }
 
   override public function update() {
-    current_ticks = ticks;
+    if (!hold) {
+      current_ticks = ticks;
+    }
+
     pos.x = startx + Math.min(1.0, Ease.quadIn(ticks/0.75))*(targetx-startx);
 
-    if (ticks >= 3.0) {
+    if (ticks >= 3.0 && !hold) {
       pos.x = targetx + Math.min(1.0, Ease.quadIn((ticks - 3.0)/0.75))*(startx-targetx);
     }
-    if (ticks >= 4.0) {
+    if (ticks >= 4.0 && !hold) {
       remove();
+      current_ticks = 5.0;
     }
   }
 }
@@ -327,7 +362,10 @@ class Player extends Entity {
   }
 
   public function removeShield() {
-    shield = false;  
+    if (shield) {
+      new Sound("shield exp").play();
+    }
+    shield = false;
     draw();
   }
 
@@ -342,10 +380,6 @@ class Player extends Entity {
       angle -= ANGSPEED*Game.time;
     } else {
       angle += ANGSPEED*Game.time;
-    }
-
-    if (Game.key.b2_pressed && !Game.main.transition) {
-      Game.main.finishLevel();
     }
 
     radius = Math.max(200, radius - 10*Game.time/0.2);
@@ -501,6 +535,8 @@ class Chunk extends Entity {
 
         health -= 1;
         draw();
+        new Sound("chunk hit").play();
+
         if (health <= 0.2) {
           Game.main.score += maxHealth;
           remove();
@@ -543,6 +579,7 @@ class Enemy extends Entity {
 
   public function explode() {
     remove();
+    new Sound("enemy exp").play();
     new Particle().color(C.black).size(2, 10).xy(240, 240)
       .count(100)
       .duration(0.5)
