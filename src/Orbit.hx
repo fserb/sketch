@@ -8,9 +8,6 @@ import vault.EMath;
 import vault.Vec2;
 import vault.Ease;
 
-import vault.algo.Voronoi;
-import vault.algo.Voronoi.Edge;
-
 class C {
   static public var white = 0xecebec;
   static public var black = 0x222222;
