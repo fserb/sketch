@@ -105,6 +105,8 @@ class Orbit extends Game {
     level++;
     new Message("level " + (level+1));
     var pl: Player = Game.one("Player");
+    // in case the game just ended.
+    if (pl == null) return;
     if (!pl.shield) {
       pl.addShield();
     } else if(level > 0) {
