@@ -1,11 +1,11 @@
 //@ ugl.bgcolor = 0x8232cd
 
 /*
-- score
 - add one shield
 - explosions
 - level transitions 
 - mid area turrets
+- random levels
 - less layers, more diversity
 - feedback on Chunk heal
 
@@ -30,6 +30,8 @@ class C {
 
 class Orbit extends Game {
   var level = 0;
+  var score: Float;
+
   static public function main() {
     Game.baseColor = 0xFFFFFF;
     new Orbit("Orbit", "");
@@ -40,13 +42,16 @@ class Orbit extends Game {
   }
   override public function begin() {
     new Player();
+    new ScoreDisplay();
     level = -1;
+    score = 0.0;
     // level = 3;
     nextLevel();
   }
 
   override public function end() {
     Game.one("Player").remove();
+    new Score(score, true);
   }
 
   public function nextLevel() {
@@ -55,7 +60,32 @@ class Orbit extends Game {
         e.remove();
       }
     }
+    if (level > 0) {
+      score += (level+1)*(level+1);
+    }
+
     new Level(++level);
+  }
+
+  override public function update() {
+    score += Game.time/5.0;
+  }
+}
+
+class ScoreDisplay extends Entity {
+  var lastscore = -1;
+  override public function begin() {
+    pos.x = 0;
+    pos.y = 430;
+    alignment = TOPLEFT;
+  }
+
+  override public function update() {
+    var s = Std.int(Game.main.score);
+    if (s == lastscore) return;
+    gfx.clear().fill(C.black).rect(0, 0, 80, 30).text(40, 15, ""+s, C.white, 2);
+    lastscore = s;
+    new Score(s, false);
   }
 }
 
@@ -65,7 +95,7 @@ enum LevelData {
 
 class Level extends Entity {
   static var DATA: Array<Array<LevelData>> = [ 
-    [ Layer("11111111", "11111111") ],
+    [ Layer("11111111", "22222222") ],
 
     [ Layer("1111", "2222"),
       Layer("11111111", "12121212"),
@@ -213,7 +243,7 @@ class Bullet extends Entity {
     if (hit(Game.one("Enemy"))) {
       remove();
       Game.one("Enemy").remove();
-      Game.main.nextLevel();      
+      Game.main.nextLevel(); 
     }
   }
 }
@@ -286,6 +316,7 @@ class Chunk extends Entity {
         health -= 1;
         draw();
         if (health <= 0.2) {
+          Game.main.score += maxHealth;
           remove();
         }
       }
