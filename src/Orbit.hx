@@ -1,5 +1,14 @@
 //@ ugl.bgcolor = 0x8232cd
 
+/*
+- score
+- explosions
+- level transitions 
+- mid area turrets
+
+
+*/
+
 import vault.ugl.*;
 import flash.geom.Point;
 import flash.geom.Rectangle;
@@ -13,7 +22,7 @@ import vault.algo.Voronoi.Edge;
 
 class C {
   static public var white = 0xecebec;
-  static public var black = 0x161616;
+  static public var black = 0x222222;
   static public var color = 0x8232cd;
 
 }
@@ -23,10 +32,15 @@ class Orbit extends Game {
   static public function main() {
     Game.baseColor = 0xFFFFFF;
     new Orbit("Orbit", "");
+    new Sound("player exp").explosion(1032);
+    new Sound("player bullet").vol(0.15).laser(1350);
+    new Sound("bullet exp").explosion(1002);
+    new Sound("enemy bullet").vol(0.1).laser(1006);
   }
   override public function begin() {
     new Player();
     level = -1;
+    // level = 3;
     nextLevel();
   }
 
@@ -35,7 +49,7 @@ class Orbit extends Game {
   }
 
   public function nextLevel() {
-    for (g in [ "Bullet", "EnemyBullet", "Chunk", "Level" ]) {
+    for (g in [ "Bullet", "Enemy", "Chunk", "Level" ]) {
       for (e in Game.get(g)) {
         e.remove();
       }
@@ -45,21 +59,33 @@ class Orbit extends Game {
 }
 
 enum LevelData {  
-  Layer(radius: Float, pattern: String, weight: String);
+  Layer(pattern: String, weight: String);
 }
 
 class Level extends Entity {
   static var DATA: Array<Array<LevelData>> = [ 
-    [ Layer(40, "11111111", "11111111") ],
+    [ Layer("11111111", "11111111") ],
 
-    [ Layer(40, "1111", "2222"),
-      Layer(55, "11111111", "12121212"),
+    [ Layer("1111", "2222"),
+      Layer("11111111", "12121212"),
      ],
 
-    [ Layer(40, "1", "5"),
-      Layer(55, "111111", "333333"),
-      Layer(70, "121212", "535353"),
+    [ Layer("1", "5"),
+      Layer("111111", "333333"),
+      Layer("121212", "535353"),
       ],
+
+    [ Layer("111111111", "3333333333"),
+      Layer("111", "555"),
+      Layer("1111111", "15151515"),
+      Layer("1111111", "51515151")
+    ],
+
+    [ Layer("131313", "151515"),
+      Layer("11111", "12345"),
+      Layer("111", "444"),
+      Layer("515151", "515151"),
+      Layer("111111111111", "333333333333") ],
   ];
 
   var layers: Array<Array<Chunk>>;
@@ -71,13 +97,18 @@ class Level extends Entity {
     layers = new Array<Array<Chunk>>();
     dangle = new Array<Float>();
 
+    var radius = 40;
     for (layer in data) {
       var l = new Array<Chunk>();
       layers.push(l);
       dangle.push(0.0);
       switch(layer) {
-        case Layer(radius, pattern, weight):
-          var total = pattern.length;
+        case Layer(pattern, weight):
+          var total = 0;
+          for (i in 0...pattern.length) {
+            var c = Std.parseInt(pattern.charAt(i));
+            total += c > 0 ? c : 1;
+          }
           var d = 0;
           for (i in 0...pattern.length) {
             var c = Std.parseInt(pattern.charAt(i));
@@ -91,8 +122,9 @@ class Level extends Entity {
             }
         }
       }
+      radius += 15;
     }
-    picklayer = 5.0/dangle.length;
+    picklayer = 12.0/dangle.length;
     new Enemy();
   }
 
@@ -100,7 +132,7 @@ class Level extends Entity {
   override public function update() {
     picklayer -= Game.time;
     if (picklayer <= 0.0) {
-      picklayer += 5.0/dangle.length;
+      picklayer += 12.0/dangle.length;
       dangle[Std.int(Math.random()*dangle.length)] = 2*Math.PI*Math.random();
     }
 
@@ -117,6 +149,8 @@ class Level extends Entity {
 }
 
 class Player extends Entity {
+  static var layer = 70;
+
   var radius = 200.0;
   public var clockwise = false;
 
@@ -128,14 +162,16 @@ class Player extends Entity {
   static var ANGSPEED = Math.PI/4.0;
   var bulletTime = 1.0;
   override public function update() {
-    if (Game.key.b1_pressed) {
+    if (Game.key.b1_pressed || Game.mouse.button_pressed) {
       clockwise = !clockwise;  
     }
 
-    if (clockwise) {
-      angle -= ANGSPEED*Game.time;
-    } else {
-      angle += ANGSPEED*Game.time;
+    if (!Game.key.b2) {
+      if (clockwise) {
+        angle -= ANGSPEED*Game.time;
+      } else {
+        angle += ANGSPEED*Game.time;
+      }
     }
 
     radius = Math.max(200, radius - 10*Game.time/0.2);
@@ -146,14 +182,17 @@ class Player extends Entity {
 
     bulletTime -= Game.time;
     if (bulletTime <= 0.0) {
-      bulletTime += 0.75;
+      bulletTime += 0.5;
       new Bullet(this);
+      new Sound("player bullet").play();
       radius += 10;
     }
   }
 }
 
 class Bullet extends Entity {
+  static var layer = 101;
+
   override public function begin() {
     var p: Player = args[0];
     pos.x = p.pos.x;
@@ -179,6 +218,7 @@ class Bullet extends Entity {
 }
 
 class Chunk extends Entity {
+  static var layer = 50;
   function arc(arr: Array<Vec2>, x:Float, y:Float, r:Float, b:Float, e:Float) {
     var segments = Math.ceil(Math.abs(e-b)/(Math.PI/8));
     var theta = -(e-b)/segments;
@@ -205,7 +245,8 @@ class Chunk extends Entity {
     return Polygon(arr);
   }  
 
-  var health: Int;
+  var maxHealth: Float;
+  var health: Float;
   var arc_begin: Float;
   var arc_end: Float;
   var radius: Float;
@@ -215,7 +256,7 @@ class Chunk extends Entity {
     var begin: Int = args[1];
     var size: Int = args[2];
     var d: Int = args[3];
-    health = args[4];
+    maxHealth = health = args[4];
 
     pos.x = pos.y = 0;
     rotationcenter = new Vec2(240, 240);
@@ -228,7 +269,7 @@ class Chunk extends Entity {
   }
 
   function draw() {
-    var r = (5 + 10*health/5.0)/2.0;
+    var r = (3 + 9*health/5.0)/2.0;
     gfx.clear().fill(vault.Utils.colorLerp(C.color, C.black, health/5.0))
       .arc(240, 240, radius - r, radius + r, arc_begin, arc_end).fill();
     clearHitBox();
@@ -236,12 +277,14 @@ class Chunk extends Entity {
   }
 
   override public function update() {
+    health = Math.min(maxHealth, health + Game.time/7.0);
+    draw();
     for (b in Game.get("Bullet")) {
       if (hit(b)) {
         b.remove();
         health -= 1;
         draw();
-        if (health <= 0) {
+        if (health <= 0.2) {
           remove();
         }
       }
@@ -250,7 +293,10 @@ class Chunk extends Entity {
 }
 
 class Enemy extends Entity {
+  static var layer = 60;
+
   var angvel = 0.0;
+  var bulletDelay = 0.5;
   override public function begin() {
     pos.x = pos.y = 240;
     gfx
@@ -259,22 +305,44 @@ class Enemy extends Entity {
       .mt(20, 0).lt(30, 20).lt(10, 20).fill(null);
     addHitBox(Circle(20, 20, 17));
     angle = Game.one("Player").angle + Math.PI;
+    lastPos = new List<Float>();
   }
 
   var bulletTime = 1.5;
   var order = 0;
-  static var BULLETDELAY = 0.3;
+  var lastPos: List<Float>;
   override public function update() {
     var pl: Player = Game.one("Player");
     if (pl == null) return;
     var pangle = (pl.angle + Math.PI);
+    lastPos.add(pangle);
 
-    if (order == 1) {
-      pangle += Math.PI/5;
-    } else if (order == 3) {
-      pangle -= Math.PI/5;
+    while (lastPos.length > 60) {
+      lastPos.pop();
     }
+
+    var vel = 0.0;
+    var vel_count = 0;
+    var prev = lastPos.first();
+    for (e in lastPos.iterator()) {
+      var v = (e - prev)/Game.time;
+      vel += v;
+      vel_count ++;
+      prev = e;
+    }
+    if (vel_count > 0) {
+      vel = vel/vel_count;
+    }
+    vel *= lastPos.length/60.0;
+    vel *= 200/300;
+
+    pangle += vel;
+
+    var normal = Math.sqrt(-2 * Math.log(Math.random())) * Math.cos(Math.random()*2*Math.PI);
+    pangle += normal*Math.PI/32;
     pangle = (2*Math.PI + pangle) % (2*Math.PI);
+
+    bulletDelay = Math.max(0.1, bulletDelay - 0.1*Game.time/30.0);
 
     var da = EMath.angledistance(angle, pangle);
     var a = function(x:Float) { return Std.int(x*180/Math.PI); };
@@ -288,23 +356,21 @@ class Enemy extends Entity {
 
     bulletTime -= Game.time;
 
-     if (Math.abs(da) <= Math.PI/32 || bulletTime < -BULLETDELAY) {
       if (bulletTime <= 0.0) {
-        if (bulletTime >= -BULLETDELAY) {
-          order = (order+1)%4;
-        }
-        bulletTime = BULLETDELAY;
+        bulletTime = bulletDelay;
         new EnemyBullet(this);
+        new Sound("enemy bullet").play();
       }    
-    }
   }
 }
 
 class EnemyBullet extends Entity {
+  static var layer = 100;
+
   override public function begin() {
     var p: Enemy = args[0];
     pos.x = pos.y = 240;
-    gfx.fill(C.black).mt(3, 0).lt(0, 10).lt(0, 12).lt(6, 12).lt(6, 10);
+    gfx.fill(0x000000).mt(3, 0).lt(0, 10).lt(0, 12).lt(6, 12).lt(6, 10);
     angle = p.angle;
     vel.length = 300;
     vel.angle = p.angle - Math.PI/2;
@@ -322,6 +388,7 @@ class EnemyBullet extends Entity {
 
     var b = hitGroup("Bullet");
     if (b != null) {
+      new Sound("bullet exp").play();
       b.remove();
       remove();
     }
