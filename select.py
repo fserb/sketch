@@ -13,6 +13,8 @@ def main(args):
     "name": prj,
     "lname" : prj.lower(),
     "bgcolor": 0x000000,
+    "width": 480,
+    "height": 480,
     "haxelib": [] }
 
   params['debug'] = '<haxedef name="ugldebug" />'
@@ -32,6 +34,9 @@ def main(args):
       continue
     if (p[0] in ['haxelib']):
       params[p[0]].append(p[1])
+    elif p[0] == 'res':
+      sp = p[1].split('x', 2)
+      params['width'], params['height'] = int(sp[0]), int(sp[1])
     else:
       params[p[0]] = p[1]
 
@@ -50,7 +55,7 @@ PROJECT = """
   <app main="%(name)s" path="bin" file="%(name)s" swf-version="11.8" />
 
   <window fps="60" background="%(bgcolor)s" resizable="false" require-shaders="true" vsync="false" antialiasing="0" />
-  <window width="480" height="480" unless="mobile" />
+  <window width="%(width)d" height="%(height)d" unless="mobile" />
   <window orientation="landscape" fullscreen="true" if="mobile" />
 
   <ios devices="universal" />
