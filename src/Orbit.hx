@@ -500,7 +500,7 @@ class Chunk extends Entity {
     rotationcenter = new Vec2(240, 240);
     alignment = TOPLEFT;
 
-    var delta = Math.PI/d - Math.PI/96;
+    var delta = Math.PI/d;
     arc_begin = 2*Math.PI*begin/d - delta;
     arc_end = 2*Math.PI*(begin + size - 1)/d + delta;
   }
@@ -508,7 +508,7 @@ class Chunk extends Entity {
   public function draw() {
     var r = (3 + 9*health/5.0)/2.0;
     gfx.clear().fill(vault.Utils.colorLerp(C.color, C.black, health/5.0))
-      .arc(240, 240, radius - r, radius + r, arc_begin, arc_end).fill();
+      .arc(240, 240, radius - r, radius + r, arc_begin + Math.PI/128, arc_end - Math.PI/128).fill();
     clearHitBox();
     addHitBox(arcHitBox(radius - r, radius + r, arc_begin, arc_end));
   }
