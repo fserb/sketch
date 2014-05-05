@@ -8,12 +8,12 @@ import vault.EMath;
 import vault.Vec2;
 import vault.Ease;
 
-class C {
+class C extends Color {
   static public var white = 0xecebec;
   static public var black = 0x222222;
   static public var color = 0x8232cd;
-  static public var halfwhite = vault.Utils.colorLerp(white, color, 0.75);
-  static public var halfblack = vault.Utils.colorLerp(black, color, 0.75);
+  static public var halfwhite = lerp(white, color, 0.75);
+  static public var halfblack = lerp(black, color, 0.75);
 }
 
 class Orbit extends Game {
