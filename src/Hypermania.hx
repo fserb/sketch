@@ -9,7 +9,6 @@ import vault.ugl.*;
 import flash.geom.Rectangle;
 import vault.EMath;
 import vault.Vec2;
-import vault.ugl.PixelArt.C;
 
 class Hypermania extends Game {
   public var player: Player;

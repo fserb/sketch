@@ -3,7 +3,6 @@
 import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
-import vault.ugl.PixelArt.C;
 
 class Asteroid extends Game {
   public var score = 0.0;

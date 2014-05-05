@@ -5,7 +5,6 @@ import flash.geom.Rectangle;
 import vault.EMath;
 import vault.Vec2;
 import vault.Ease;
-import vault.ugl.PixelArt.C;
 
 class Gather extends Game {
   public var COLORS = [ 0xff6819, 0xc0dc61, 0x1ebed8, 0xfec804, 0xe284cc ];

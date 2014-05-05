@@ -3,7 +3,6 @@
 import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
-import vault.ugl.PixelArt.C;
 
 class Amaze extends Game {
   static public function main() {
