@@ -92,7 +92,7 @@ class Engine extends Entity {
   }
 
   public function throtle() {
-    force = Math.min(5, force + 20*Game.time);
+    force = Math.min(5, force + 20);
     player.thrust(force, relative_angle + Math.PI);
     new Particle().color(0xaa9936).count(force/5, 2).size(5, 5)
       .xy(pos.x, pos.y).speed(force*50, 100)
