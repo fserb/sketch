@@ -12,8 +12,8 @@ class C extends Color {
   static public var white = 0xecebec;
   static public var black = 0x222222;
   static public var color = 0x8232cd;
-  static public var halfwhite = lerp(white, color, 0.75);
-  static public var halfblack = lerp(black, color, 0.75);
+  static public var halfwhite = Color.lerp(white, color, 0.75);
+  static public var halfblack = Color.lerp(black, color, 0.75);
 }
 
 class Orbit extends Game {

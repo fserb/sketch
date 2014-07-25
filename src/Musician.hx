@@ -4,8 +4,7 @@ import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
 
-class C extends Color.ColorsArne {
-}
+typedef C = Color.ColorsArne;
 
 class Musician extends Game {
   public var score: Int;

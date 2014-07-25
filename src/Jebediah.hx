@@ -8,8 +8,7 @@ import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
 
-class C extends Color.ColorsArne {
-}
+typedef C = Color.ColorsArne;
 
 class Jebediah extends Game {
   static public function main() {
@@ -179,7 +178,7 @@ class Player extends Entity {
 
 class Planet extends Entity {
   var size: Int;
-  var pcolor: Int;
+  var pcolor: UInt;
   override public function new(x: Float, y: Float, size: Int) {
     this.size = size;
     super();
@@ -235,7 +234,7 @@ class Planet extends Entity {
       p.accelerate(attract(p.pos, Game.time));
     }
 
-    var col = C.lerp(C.purple, 0x222222, (dist - 120)/120.0);
+    var col = Color.lerp(C.purple, 0x222222, (dist - 120)/120.0);
     if (col != pcolor) {
       pcolor = col;
       art.size(5,size*2, size*2).color(pcolor).circle(size, size, size);
