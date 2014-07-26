@@ -1,2 +1,4 @@
 project.xml
 bin
+.atom-build.json
+vault
