@@ -33,11 +33,11 @@ class C {
   }
 }
 
-class LD29 extends Game {
+class LD29 extends Micro {
   public var score = 0.0;
   var displayScore: Scorer;
   static public function main() {
-    Game.baseColor = 0x000000;
+    Micro.baseColor = 0x000000;
     new Sound("reach").coin(82);
     new Sound("timeup").vol(0.1).explosion(4073);
     new Sound("explosion").explosion(4005);
@@ -155,7 +155,7 @@ class Mission extends Entity {
 
   function getNext(): Float {
     if (target != null) target.remove();
-    target_station = Game.main.randomStation();
+    target_station = Game.scene.randomStation();
     target = new TargetStation(target_station);
     var dist:Vec2 = Game.one("Train").pos.distance(target_station.pos);
     return dist.length;
@@ -173,7 +173,7 @@ class Mission extends Entity {
     if (end < 0) {
       new Sound("timeup").play();
       end = 3.0;
-      Game.main.mission = null;
+      Game.scene.mission = null;
       if (combo <= 1) {
         msg = "nope";
       } else {
@@ -187,7 +187,7 @@ class Mission extends Entity {
       new Sound("reach").play();
       Game.shake(0.1);
       combo++;
-      Game.main.score += 10*combo*Math.sqrt(Game.main.enemies)/5;
+      Game.scene.score += 10*combo*Math.sqrt(Game.scene.enemies)/5;
       if (combo == 1) {
         msg = "Go to the next one!";
       } else {
@@ -205,7 +205,7 @@ class Mission extends Entity {
       pos.y = 440 + 60*Ease.cubicOut(1.0 - Math.min(1.0, end));
       if (end <= 0.0) {
         remove();
-        Game.main.newMission();
+        Game.scene.newMission();
         return;
       }
       ticks -= Game.time;
@@ -468,8 +468,8 @@ class Train extends Entity {
       if (fulllength <= acc*Game.time) {
 
         sndStation.play();
-        if (Game.main.mission != null) {
-          Game.main.mission.station(to);
+        if (Game.scene.mission != null) {
+          Game.scene.mission.station(to);
         }
         if (path.length == 0) {
           selectPush();
@@ -542,7 +542,7 @@ class Enemy extends Entity {
 
     var p: Train = Game.one("Train");
     if (p != null && hit(p)) {
-      Game.endGame();
+      Game.scene.endGame();
     }
   }
 }

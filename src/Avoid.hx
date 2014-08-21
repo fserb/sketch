@@ -5,13 +5,9 @@ import vault.Rand;
 import vault.ugl.*;
 import vault.Vec2;
 
-class Avoid extends Game {
+class Avoid extends Micro {
   static public function main() {
     new Avoid("Avoid", "");
-  }
-
-  override public function initialize() {
-    score = new Text().xy(10, 10).align(TOP_LEFT).size(2);
   }
 
   public var player: Player = null;
@@ -19,6 +15,7 @@ class Avoid extends Game {
   var score: Text;
 
   override public function begin() {
+    score = new Text().xy(10, 10).align(TOP_LEFT).size(2);
     player = new Player();
     Game.orderGroups(["Enemy", "Player", "Particle", "Text"]);
     spawner = new Timer().every(1.5).run(function() { new Enemy(); return true; });
@@ -60,7 +57,7 @@ class Player extends Entity {
     if (size <= 0) {
       new Particle().color(0xe1b81f).xy(pos.x, pos.y).count(150).size(5, 9)
                     .delay(0).duration(5.0).speed(vel.length/10, 50);
-      Game.endGame();
+      Game.scene.endGame();
     }
   }
 }
@@ -80,7 +77,7 @@ class Enemy extends Entity {
   override public function update() {
     tv += Game.time;
 
-    var player: Player = Game.main.player;
+    var player: Player = Game.scene.player;
     if (player == null) return;
     var x = player.pos.distance(this.pos);
     x.normalize();
@@ -140,7 +137,7 @@ class Enemy extends Entity {
   function adsc() {
     if (tads <= 0) return;
     new Text().text("+" + tads).duration(1).xy(pos.x, pos.y).move(0, -20);
-    Game.main.player.score += tads;
+    Game.scene.player.score += tads;
     tads = 0;
   }
 }

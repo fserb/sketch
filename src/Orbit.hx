@@ -16,13 +16,13 @@ class C extends Color {
   static public var halfblack = Color.lerp(black, color, 0.75);
 }
 
-class Orbit extends Game {
+class Orbit extends Micro {
   var level = 0;
   var score: Float;
   public var transition = false;
 
   static public function main() {
-    Game.baseColor = 0xFFFFFF;
+    Micro.baseColor = 0xFFFFFF;
     new Sound("player exp").explosion(1032);
     new Sound("player bullet").vol(0.15).laser(1350);
     new Sound("bullet exp").vol(0.1).explosion(1002);
@@ -192,7 +192,7 @@ class Scorer extends Entity {
   }
 
   override public function update() {
-    var score = Std.int(Game.main.score);
+    var score = Std.int(Game.scene.score);
     if (score == lastscore) return;
 
     gfx.clear().fill(C.black).rect(0, 0, 100, 30).text(50, 15, ""+score, C.white, 2);
@@ -389,7 +389,7 @@ class Player extends Entity {
     pos.x = 240 + radius*Math.cos(angle + Math.PI/2.0);
     pos.y = 240 + radius*Math.sin(angle + Math.PI/2.0);
 
-    if (!Game.main.transition) {
+    if (!Game.scene.transition) {
       bulletTime -= Game.time;
     }
     if (bulletTime <= 0.0) {
@@ -445,7 +445,7 @@ class Bullet extends Entity {
 
     if (hit(Game.one("Enemy"))) {
       explode();
-      Game.main.finishLevel();
+      Game.scene.finishLevel();
     }
   }
 }
@@ -539,7 +539,7 @@ class Chunk extends Entity {
         new Sound("chunk hit").play();
 
         if (health <= 0.2) {
-          Game.main.score += maxHealth;
+          Game.scene.score += maxHealth;
           remove();
           var ang = b.angle - Math.PI/2;
           var diff = (arc_end - arc_begin);
@@ -634,7 +634,7 @@ class Enemy extends Entity {
     angvel *= 0.9;
     angle += angvel*Game.time;
 
-    if (!Game.main.transition) {
+    if (!Game.scene.transition) {
       bulletTime -= Game.time;
     }
 
@@ -674,11 +674,11 @@ class EnemyBullet extends Entity {
     var pl: Player = Game.one("Player");
     if (hit(pl)) {
       remove();
-      Game.flash(C.white);
+      Micro.flash(C.white);
       if (pl.shield) {
         pl.removeShield();
       } else {
-        Game.endGame();
+        Game.scene.endGame();
       }
     }
 

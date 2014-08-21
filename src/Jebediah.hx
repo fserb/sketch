@@ -10,17 +10,13 @@ import vault.Vec2;
 
 typedef C = Color.ColorsArne;
 
-class Jebediah extends Game {
+class Jebediah extends Micro {
   static public function main() {
     new Jebediah("Jebediah's Revenge", "");
   }
 
   public var player: Player;
   public var energy: Energy;
-
-  override public function initialize() {
-    Game.orderGroups(["Planet", "Jebediah"]);
-  }
 
   override public function begin() {
     player = new Player();
@@ -29,6 +25,7 @@ class Jebediah extends Game {
     new Planet(240, 400, 8);
     new Planet(480, 0, 6);
     new Planet(0, 0, 7);
+    Game.orderGroups(["Planet", "Jebediah"]);
 
     // new Asteroid();
   }
@@ -63,7 +60,7 @@ class Energy extends Entity {
   }
 
   override public function update() {
-    var v = Game.main.player.energy;
+    var v = Game.scene.player.energy;
     art.size(1, 80, 4)
       .color(0x444444).rect(0, 0, 80, 4)
       .color(v >= 15 ? C.lightbrown : C.red).rect(0, 0, 80*v/100.0, 4);
@@ -72,7 +69,7 @@ class Energy extends Entity {
 
 class Trajectory extends Entity {
   override public function update() {
-    var p = Game.main.player;
+    var p = Game.scene.player;
     pos.x = 0;
     pos.y = 0;
 
@@ -128,7 +125,7 @@ class Player extends Entity {
   public function explode() {
     new Particle().xy(pos.x, pos.y).count(500).size(4).color(C.darkgrey)
       .speed(10, 30).delay(0).duration(1, 2);
-    Game.main.end();
+    Game.scene.end();
   }
 
   override public function update() {
@@ -202,7 +199,7 @@ class Planet extends Entity {
   }
 
   override public function update() {
-    var p:Player = Game.main.player;
+    var p:Player = Game.scene.player;
     var v = pos.copy();
     v.sub(p.pos);
     var dist = v.length;
@@ -284,10 +281,10 @@ class Asteroid extends Entity {
       }
     }
 
-    if (hit(Game.main.player)) {
+    if (hit(Game.scene.player)) {
       trace("asteroid");
       explode();
-      Game.main.player.explode();
+      Game.scene.player.explode();
     }
 
     if (pos.x < -sprite.width/2 || pos.x > 480+sprite.width/2 ||

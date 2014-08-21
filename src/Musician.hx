@@ -6,7 +6,7 @@ import vault.Vec2;
 
 typedef C = Color.ColorsArne;
 
-class Musician extends Game {
+class Musician extends Micro {
   public var score: Int;
   var display: Text;
   public var bpm: Float;
@@ -19,10 +19,6 @@ class Musician extends Game {
   public var hat: Hat;
   public var holder: Holder;
   public var combo: Int;
-
-  override public function initialize() {
-    Game.orderGroups(["Hat", "Holder", "Coin", "Tomato", "Note", "Player", "Text"]);
-  }
 
   override public function end() {
     player.remove();
@@ -46,6 +42,7 @@ class Musician extends Game {
     bpm = 60.0;
     level = 0;
     combo = 0;
+    Game.orderGroups(["Hat", "Holder", "Coin", "Tomato", "Note", "Player", "Text"]);
   }
 
   var tempo = 0.0;
@@ -120,7 +117,7 @@ class Note extends Entity {
   }
 
   override public function update() {
-    if (hit(Game.main.holder)) {
+    if (hit(Game.scene.holder)) {
       if (front) {
         art.cache(1).size(4, 5, 5).obj([C.red], NOTE);
       }
@@ -129,26 +126,26 @@ class Note extends Entity {
       if (Game.key.up_pressed && front) {
         good = true;
         snd.play();
-        Game.main.combo++;
-        var dist = Math.abs(pos.x  - Game.main.holder.pos.x)/20.0;
+        Game.scene.combo++;
+        var dist = Math.abs(pos.x  - Game.scene.holder.pos.x)/20.0;
         new Coin(dist);
       }
     } else if (front) {
       if (onhit) {
         onhit = false;
         missed = true;
-        Game.main.combo = 0;
+        Game.scene.combo = 0;
         new Tomato();
       }
       if (Game.key.up_pressed) {
         missed = true;
-        Game.main.combo = 0;
+        Game.scene.combo = 0;
         new Tomato();
       }
     }
 
     if (!good && !missed) {
-      pos.x -= Game.main.bpm*Game.time;
+      pos.x -= Game.scene.bpm*Game.time;
     } else {
       sprite.alpha -= Game.time/0.5;
     }
@@ -210,13 +207,13 @@ class Tomato extends Entity {
   }
 
   override public function update() {
-    if (hit(Game.main.player)) {
+    if (hit(Game.scene.player)) {
       new Particle().color(C.red).xy(pos.x, pos.y).count(500)
         .size(10, 5).speed(0, vel.length/2.0)
         .delay(0).duration(0.5, 0.5);
       remove();
       new Sound("tomato").explosion(16).play();
-      Game.endGame();
+      Game.scene.endGame();
     }
 
     if (pos.y < 0) {
@@ -229,7 +226,7 @@ class Coin extends Entity {
   var value: Int;
   override public function begin() {
     var dist: Float = args[0];
-    value = Math.round(Game.main.combo + (1.0 - dist)*9);
+    value = Math.round(Game.scene.combo + (1.0 - dist)*9);
     pos.x = Math.random()*480;
     pos.y = 500;
 
@@ -243,8 +240,8 @@ class Coin extends Entity {
   }
 
   override public function update() {
-    if (hit(Game.main.player)) {
-      Game.main.score += value;
+    if (hit(Game.scene.player)) {
+      Game.scene.score += value;
       new Text().text("$" + value).duration(1).xy(pos.x, pos.y).move(0, -20);
       new Sound("coin").coin(12).play();
       remove();
@@ -263,4 +260,3 @@ class Hat extends Entity {
     pos.x = pos.y = 240;
   }
 }
-

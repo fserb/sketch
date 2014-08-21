@@ -5,16 +5,13 @@ import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
 
-class Up extends Game {
+class Up extends Micro {
   var camera: Vec2;
   var score: Int;
   var display: Text;
   var adds: Float;
   static public function main() {
     new Up("Up", "");
-  }
-
-  override public function initialize() {
   }
 
   var player: Player;
@@ -158,7 +155,7 @@ class Player extends Entity {
       e.remove();
     }
     remove();
-    Game.endGame();
+    Game.scene.endGame();
   }
 }
 
@@ -173,13 +170,13 @@ class Obstacle extends Entity {
   }
 
   override public function update() {
-    if (hit(Game.main.player)) {
-      Game.main.player.kill();
+    if (hit(Game.scene.player)) {
+      Game.scene.player.kill();
       remove();
     }
 
     if (pos.y >= 500) {
-      Game.main.score += 5;
+      Game.scene.score += 5;
       new Text().text("+5").duration(1).xy(EMath.clamp(pos.x, 10, 470), 480).move(0, -20);
      remove();
     }
@@ -201,8 +198,8 @@ class Gold extends Entity {
   }
 
   override public function update() {
-    if (hit(Game.main.player)) {
-      Game.main.score += points;
+    if (hit(Game.scene.player)) {
+      Game.scene.score += points;
       new Text().text("+" + points).duration(1).xy(pos.x, pos.y).move(0, -20);
       remove();
     }

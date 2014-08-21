@@ -10,7 +10,7 @@ import flash.geom.Rectangle;
 import vault.EMath;
 import vault.Vec2;
 
-class Hypermania extends Game {
+class Hypermania extends Micro {
   public var player: Player;
   public var score: Float;
   public var energy: Float;
@@ -145,7 +145,7 @@ class Player extends Entity {
     new Particle().xy(pos.x, pos.y).color(0xFFFFFF)
       .count(80).size(6).speed(20, 50).duration(1.5);
     Game.shake(1.0);
-    Game.endGame();
+    Game.scene.endGame();
   }
 
   override public function update() {
@@ -156,11 +156,11 @@ class Player extends Entity {
         sndBullet.play();
         bullet = new Bullet();
         new Light(bullet.pos, true);
-        Game.main.energy -= 100.0/200.0;
+        Game.scene.energy -= 100.0/200.0;
         pos.y = 480 - 80;
       }
     } else {
-      bullet.pos.x = Game.main.player.pos.x;
+      bullet.pos.x = Game.scene.player.pos.x;
       bullet.pos.y -= 500*Game.time;
       if (bullet.pos.y < 9) {
         bullet.explode(false);
@@ -190,7 +190,7 @@ class Light extends Entity {
 
 class Bullet extends Entity {
   override public function begin() {
-    pos.x = Game.main.player.pos.x;
+    pos.x = Game.scene.player.pos.x;
     pos.y = 480 - 80 - 18 - 18;
     art.size(3).color(0xFFFFFF).rect(0, 0, 2, 6);
     addHitBox(Rect(0, 0, 6, 18));
@@ -198,15 +198,15 @@ class Bullet extends Entity {
 
   public function explode(hit: Bool) {
     if (hit) {
-      Game.main.player.combo += 1;
+      Game.scene.player.combo += 1;
     } else {
-      Game.main.player.combo = 0;
+      Game.scene.player.combo = 0;
     }
-    if (Game.main.player.combo > 1) {
+    if (Game.scene.player.combo > 1) {
       new Text().xy(pos.x, pos.y).move(0, -50).duration(0.5)
-        .size(2).color(0xb23f04).text("x" + Game.main.player.combo);
+        .size(2).color(0xb23f04).text("x" + Game.scene.player.combo);
     }
-    Game.main.player.bullet = null;
+    Game.scene.player.bullet = null;
     remove();
   }
 }
@@ -302,7 +302,7 @@ class Wave extends Entity {
   var strategy: Strategy;
 
   override public function begin() {
-    var wave = Game.main.waveCount;
+    var wave = Game.scene.waveCount;
 
     var s = wave % STRATS.length;
     var t = Std.int(wave / STRATS.length) % TIMESTRATS.length;
@@ -416,7 +416,7 @@ class Wave extends Entity {
 
     if (all.length == 0) {
       remove();
-      Game.main.nextLevel();
+      Game.scene.nextLevel();
     }
   }
 }
@@ -461,22 +461,22 @@ class Enemy extends Entity {
   override public function update() {
     if (exploding) return;
 
-    if (hit(Game.main.player)) {
+    if (hit(Game.scene.player)) {
       exploding = true;
-      Game.main.player.explode();
+      Game.scene.player.explode();
       remove();
       wave.all.remove(this);
       sndExplode.play();
     }
 
-    if (Game.main.player != null && hit(Game.main.player.bullet)) {
+    if (Game.scene.player != null && hit(Game.scene.player.bullet)) {
       Game.shake(0.2);
       exploding = true;
       draw(0xFFFFFF);
       sndExplode.play();
       Game.delay(0.01);
-      Game.main.player.bullet.explode(true);
-      Game.main.bar.addScore(1*(Game.main.waveCount+1)*Game.main.player.combo);
+      Game.scene.player.bullet.explode(true);
+      Game.scene.bar.addScore(1*(Game.scene.waveCount+1)*Game.scene.player.combo);
       new Timer().delay(0.1).run(function() {
         remove();
         wave.all.remove(this);
@@ -497,9 +497,9 @@ class EnemyBullet extends Entity {
     new Light(pos, false);
   }
   override public function update() {
-    if (Game.main.player != null && hit(Game.main.player.bullet)) {
+    if (Game.scene.player != null && hit(Game.scene.player.bullet)) {
       Game.shake(0.1);
-      Game.main.player.bullet.explode(true);
+      Game.scene.player.bullet.explode(true);
       art.clear().size(2).color(0xFFFFFF).rect(0, 0, 2, 6);
       new Timer().delay(0.1).run(function() {
         remove();
@@ -508,8 +508,8 @@ class EnemyBullet extends Entity {
       return;
     }
 
-    if (hit(Game.main.player)) {
-      Game.main.player.explode();
+    if (hit(Game.scene.player)) {
+      Game.scene.player.explode();
     }
 
     pos.y += 400*Game.time;
@@ -539,11 +539,11 @@ class Bar extends Entity {
   }
 
   override public function update() {
-    displayScore.text("" + Std.int(Game.main.score));
+    displayScore.text("" + Std.int(Game.scene.score));
     if (buffer >= 1 && ticks > 0.2) {
       new Text().xy(455, 455)
         .color(0xe65205).move(0, -40).duration(0.3).text("+"+Std.int(buffer));
-      Game.main.score += Std.int(buffer);
+      Game.scene.score += Std.int(buffer);
       buffer -= Std.int(buffer);
       ticks = 0.0;
     }
@@ -560,7 +560,6 @@ class Energy extends Entity {
   override public function update() {
     gfx.clear()
       .fill(0x011f30).rect(0, 0, 400, 10)
-      .fill(0xe65205).rect(0, 0, 400*Game.main.energy/100, 10);
+      .fill(0xe65205).rect(0, 0, 400*Game.scene.energy/100, 10);
   }
 }
-

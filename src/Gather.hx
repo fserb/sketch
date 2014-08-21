@@ -6,7 +6,7 @@ import vault.EMath;
 import vault.Vec2;
 import vault.Ease;
 
-class Gather extends Game {
+class Gather extends Micro {
   public var COLORS = [ 0xff6819, 0xc0dc61, 0x1ebed8, 0xfec804, 0xe284cc ];
 
   var score: Float;
@@ -18,7 +18,7 @@ class Gather extends Game {
   public var miny: Float;
   var sndExp: Sound;
   static public function main() {
-    Game.baseColor = 0x000000;
+    Micro.baseColor = 0x000000;
     new Gather("Gather", "");
   }
   override public function final() {
@@ -209,7 +209,7 @@ class Piece extends Entity {
     color = args[2];
     targeted = false;
     popping = false;
-    pos = Game.main.pos(px, py);
+    pos = Game.scene.pos(px, py);
     size = 1.0;
     eye = new Vec2(Math.random()*480, Math.random()*480);
     draw();
@@ -227,7 +227,7 @@ class Piece extends Entity {
 
   function draw() {
     art.clear();
-    var c = Game.main.COLORS[color];
+    var c = Game.scene.COLORS[color];
 
     art.size(4, 9, 9).obj([c, 0x000000, 0x444444, 0xFFFFFF], "
     211111112
@@ -250,7 +250,7 @@ class Piece extends Entity {
   }
 
   public function pop() {
-    Game.main.grid[px][py] = null;
+    Game.scene.grid[px][py] = null;
     popping = true;
     targeted = false;
   }
@@ -267,7 +267,7 @@ class Piece extends Entity {
       draw();
     }
 
-    pos = Game.main.pos(px, py);
+    pos = Game.scene.pos(px, py);
     if (pos.y > 484) {
 
       remove();
@@ -305,7 +305,7 @@ class Cursor extends Entity {
   override public function begin() {
     px = args[0];
     py = args[1];
-    pos = Game.main.pos(px, py);
+    pos = Game.scene.pos(px, py);
     head = true;
     draw();
   }
@@ -330,12 +330,12 @@ class Cursor extends Entity {
     var counts = [ 0, 0, 0, 0, 0];
     for (e in Game.get("Cursor")) {
       var c: Cursor = cast e;
-      var p = Game.main.grid[c.px][c.py];
+      var p = Game.scene.grid[c.px][c.py];
       if (p == null) continue;
       counts[p.color] += 1;
     }
 
-    Game.main.scoreColors.set(counts);
+    Game.scene.scoreColors.set(counts);
 
     var mv = 0;
     var cnt = 0;
@@ -355,12 +355,12 @@ class Cursor extends Entity {
       if (!c.head) {
         c.pop();
       }
-      var p = Game.main.grid[c.px][c.py];
+      var p = Game.scene.grid[c.px][c.py];
       if (p == null) continue;
       p.pop();
     }
     new Sound("gather").explosion(25).play();
-    Game.main.scoreColors.go();
+    Game.scene.scoreColors.go();
   }
 
   public function pop() {
@@ -368,31 +368,32 @@ class Cursor extends Entity {
   }
 
   override public function update() {
-    pos = Game.main.pos(px, py);
-    Game.main.maxy = Math.max(Game.main.maxy, pos.y);
-    Game.main.miny = Math.min(Game.main.miny, pos.y);
+    pos = Game.scene.pos(px, py);
+    Game.scene.maxy = Math.max(Game.scene.maxy, pos.y);
+    Game.scene.miny = Math.min(Game.scene.miny, pos.y);
 
     if (Game.key.b1_pressed) {
-      if (Game.main.grid[px][py] != null) {
-        Game.main.grid[px][py].untarget();
+      if (Game.scene.grid[px][py] != null) {
+        Game.scene.grid[px][py].untarget();
         remove();
       } else {
         head = true;
-        Game.main.scoreColors.reset();
+        Game.scene.scoreColors.reset();
         draw();
       }
     }
 
     if (pos.y >= 450) {
-      return Game.endGame();
+      Game.scene.endGame();
+      return;
     }
 
     if (!head) return;
 
-    if (px > 0 && Game.main.grid[px-1][py] != null) Game.main.grid[px-1][py].see(pos);
-    if (px < 8 && Game.main.grid[px+1][py] != null) Game.main.grid[px+1][py].see(pos);
-    if (py > 0 && Game.main.grid[px][py-1] != null) Game.main.grid[px][py-1].see(pos);
-    if (py < 10 && Game.main.grid[px][py+1] != null) Game.main.grid[px][py+1].see(pos);
+    if (px > 0 && Game.scene.grid[px-1][py] != null) Game.scene.grid[px-1][py].see(pos);
+    if (px < 8 && Game.scene.grid[px+1][py] != null) Game.scene.grid[px+1][py].see(pos);
+    if (py > 0 && Game.scene.grid[px][py-1] != null) Game.scene.grid[px][py-1].see(pos);
+    if (py < 10 && Game.scene.grid[px][py+1] != null) Game.scene.grid[px][py+1].see(pos);
 
     // try to move
     var tx = px;
@@ -404,13 +405,13 @@ class Cursor extends Entity {
     // not allowed outside
     if (tx < 0 || tx >= 9 || ty < 0 || ty >= 11) {
       tx = px; ty = py;
-    } else if (Game.main.grid[tx][ty] == null) {
-      if (Game.main.grid[px][py] == null) {
+    } else if (Game.scene.grid[tx][ty] == null) {
+      if (Game.scene.grid[px][py] == null) {
         px = tx; py = ty;
         return;
       }
       tx = px; ty = py;
-    } else if (Game.main.grid[tx][ty].targeted) {
+    } else if (Game.scene.grid[tx][ty].targeted) {
       tx = px; ty = py;
     }
 
@@ -418,7 +419,7 @@ class Cursor extends Entity {
       new Sound("move").jump(12).play();
 
       new Cursor(tx, ty);
-      Game.main.grid[tx][ty].target();
+      Game.scene.grid[tx][ty].target();
       head = false;
       draw();
       check();
@@ -450,7 +451,7 @@ class ScoreAnim extends Entity {
     for (i in order) {
       var c = v[i];
       if (c == 0) continue;
-      g.fill(Game.main.COLORS[i]);
+      g.fill(Game.scene.COLORS[i]);
       for (j in 0...c) {
         g.rect(j*8, l*8, 7, 7);
       }
@@ -459,7 +460,7 @@ class ScoreAnim extends Entity {
   }
 
   public function go() {
-    Game.main.scoreColors = new ScoreAnim();
+    Game.scene.scoreColors = new ScoreAnim();
     moving = true;
     ticks = 0.0;
 
@@ -472,7 +473,7 @@ class ScoreAnim extends Entity {
       }
     }
 
-    score = cnt*pieces*(pieces - 1)*(cnt - 1)*(1 + Game.main.difficulty);
+    score = cnt*pieces*(pieces - 1)*(cnt - 1)*(1 + Game.scene.difficulty);
   }
 
   override public function begin() {
@@ -488,7 +489,7 @@ class ScoreAnim extends Entity {
     pos.x = 50 + 190*Ease.quadIn(t);
     sprite.alpha = 1.0 - Ease.quadIn(t);
     if (t > 1.0) {
-      Game.main.addScore(score);
+      Game.scene.addScore(score);
       remove();
     }
   }
@@ -514,4 +515,3 @@ class Frame extends Entity {
     g.moveTo(50, 466); g.lineTo(420, 466);
   }
 }
-

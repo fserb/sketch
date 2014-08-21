@@ -4,7 +4,7 @@ import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
 
-class Asteroid extends Game {
+class Asteroid extends Micro {
   public var score = 0.0;
   var display: Text;
 
@@ -137,8 +137,8 @@ class Player extends Entity {
 
   public var reload = 0.0;
   override public function update() {
-    if (Game.key.left) angle -= 1.5*Math.PI*Game.main.realtime;
-    if (Game.key.right) angle += 1.5*Math.PI*Game.main.realtime;
+    if (Game.key.left) angle -= 1.5*Math.PI*Game.scene.realtime;
+    if (Game.key.right) angle += 1.5*Math.PI*Game.scene.realtime;
     if (Game.key.up) {
       var v = new Vec2(200*Game.time, 0);
       v.rotate(angle);
@@ -155,7 +155,7 @@ class Player extends Entity {
       sndBullet.play();
       reload += 0.35;
     }
-    Game.main.wrap(pos, 12);
+    Game.scene.wrap(pos, 12);
 
     for (e in Game.get("Bullet")) {
       var b: Bullet = cast e;
@@ -172,7 +172,7 @@ class Player extends Entity {
       .size(3, 10).speed(5, 25).duration(2.0, 0.5);
     Game.shake(0.5);
     sndExp.play();
-    Game.endGame();
+    Game.scene.endGame();
   }
 }
 
@@ -204,7 +204,7 @@ class Bullet extends Entity {
       remove();
     }
 
-    Game.main.wrap(pos, 0);
+    Game.scene.wrap(pos, 0);
 
     for (e in Game.get("Bullet")) {
       var b: Bullet = cast e;
@@ -248,7 +248,7 @@ class Ball extends Entity {
       var b: Bullet = cast e;
       if (!b.fromPlayer) continue;
       if (hit(b)) {
-        Game.main.score += 2;
+        Game.scene.score += 2;
         new Text().xy(pos.x, pos.y).duration(1).move(0, -20).color(0xFFFFFF).text("+2");
         new Particle().color(0x000000).count(size*2, size).xy(pos.x, pos.y)
           .size(4,size/2).speed(0, 100).duration(1.5, 0.5);
@@ -273,7 +273,7 @@ class Ball extends Entity {
       p.explode();
     }
 
-    Game.main.wrap(pos, size*2);
+    Game.scene.wrap(pos, size*2);
   }
 }
 
@@ -379,7 +379,7 @@ class Enemy extends Entity {
       }
     }
 
-    Game.main.wrap(pos, 12);
+    Game.scene.wrap(pos, 12);
 
     for (e in Game.get("Bullet")) {
       var b: Bullet = cast e;
@@ -388,7 +388,7 @@ class Enemy extends Entity {
         Game.shake();
         remove();
         b.remove();
-        Game.main.score += 10;
+        Game.scene.score += 10;
         sndExp.play();
         new Text().xy(pos.x, pos.y).duration(1).move(0, -20).color(0xFFFFFF).text("+10");
         new Particle().color(0x000000).count(40, 20).xy(pos.x, pos.y)

@@ -4,7 +4,7 @@ import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
 
-class Amaze extends Game {
+class Amaze extends Micro {
   static public function main() {
     new Amaze("Amaze", "maze + jump + key");
   }
@@ -52,8 +52,8 @@ class Transition extends Entity {
   var txt: Text = null;
   var f = 0.0;
   override public function begin() {
-    pos.x = Game.main.gate.pos.x;
-    pos.y = Game.main.gate.pos.y;
+    pos.x = Game.scene.gate.pos.x;
+    pos.y = Game.scene.gate.pos.y;
   }
   override public function update() {
     t += Game.time/0.5;
@@ -66,7 +66,7 @@ class Transition extends Entity {
     } else if (f == 0.0) {
       pos.x = pos.y = 240;
       if (txt == null) {
-        txt = new Text().xy(240, 240).size(3).color(0xFFFFFFFF).text("Level " + (Game.main.level + 1));
+        txt = new Text().xy(240, 240).size(3).color(0xFFFFFFFF).text("Level " + (Game.scene.level + 1));
       }
       if (Game.key.any_pressed) {
         txt.remove();
@@ -80,7 +80,7 @@ class Transition extends Entity {
       g.beginFill(0x3dbf86);
       g.drawRect(240 - 240*f, 240 - 240*f, 480*f, 480*f);
       if (f >= 1.0) {
-        Game.main.buildNext();
+        Game.scene.buildNext();
       }
     }
   }
@@ -105,15 +105,15 @@ class Maze extends Entity {
     generate();
     draw();
 
-    Game.main.player = new Player();
-    Game.main.gate = new Gate();
+    Game.scene.player = new Player();
+    Game.scene.gate = new Gate();
     var key = new Key();
     var p0 = Std.int(Math.random()*15*15);
     var p1 = 15*15 - 1 - p0;
-    setpos(Game.main.gate, p0);
+    setpos(Game.scene.gate, p0);
     setpos(key, p1);
 
-    for (i in 0...Game.main.level) {
+    for (i in 0...Game.scene.level) {
       new Bot();
     }
   }
@@ -247,7 +247,7 @@ class Player extends Entity {
     facing = d;
     angle = d == 1 ? 0: d == 2 ? Math.PI/2 : d == 4 ? Math.PI : 3*Math.PI/2;
 
-    if (Game.main.maze.map[mx][my] & d == d) return;
+    if (Game.scene.maze.map[mx][my] & d == d) return;
     var dx = Math.abs(pos.x - (tx*32 + 17))/32;
     var dy = Math.abs(pos.y - (ty*32 + 17))/32;
     switch(d) {
@@ -260,7 +260,7 @@ class Player extends Entity {
 
   function jump() {
     if (cooldown > 0) return;
-    if (Game.main.maze.map[mx][my] & facing == 0) return;
+    if (Game.scene.maze.map[mx][my] & facing == 0) return;
     var dx = Math.abs(pos.x - (tx*32 + 17))/32;
     var dy = Math.abs(pos.y - (ty*32 + 17))/32;
     var jumped = false;
@@ -307,7 +307,7 @@ class Player extends Entity {
       art.cache(Std.int(2 + s)).color(0xFFFFFF).circle(s, s, s)
          .color(0x3dbf86).rect(0, s+1, 2*s+1, s/2+1);
       if (leaving == 0) {
-        Game.main.next();
+        Game.scene.next();
       }
     } else {
       cooldown = Math.max(0, cooldown - Game.time/3.0);
@@ -346,7 +346,7 @@ class Bot extends Entity {
   function reduceX(x0: Int, y: Int, dx: Int, walk: Bool): Int {
     var x = x0;
     while (x >= 0 && x < 15) {
-      var m = Game.main.maze.map[x][y];
+      var m = Game.scene.maze.map[x][y];
       if (dx == 1 && m & 2 == 2) break;
       if (dx == -1 && m & 8 == 8) break;
       if (walk && Math.random() >= 1/(1 + Math.abs(x - x0)) && (m & 1 == 0 || m & 4 == 0)) break;
@@ -358,7 +358,7 @@ class Bot extends Entity {
   function reduceY(x: Int, y0: Int, dy: Int, walk: Bool): Int {
     var y = y0;
     while (y >= 0 && y < 15) {
-      var m = Game.main.maze.map[x][y];
+      var m = Game.scene.maze.map[x][y];
       if (dy == 1 && m & 4 == 4) break;
       if (dy == -1 && m & 1 == 1) break;
       if (walk && Math.random() >= 1/(1 + Math.abs(y - y0)) && (m & 2 == 0 || m & 8 == 0)) break;
@@ -368,9 +368,9 @@ class Bot extends Entity {
   }
 
   function findNewTarget() {
-    if (Game.main.player != null) {
-      var dx = EMath.sign(Game.main.player.mx - mx);
-      var dy = EMath.sign(Game.main.player.my - my);
+    if (Game.scene.player != null) {
+      var dx = EMath.sign(Game.scene.player.mx - mx);
+      var dy = EMath.sign(Game.scene.player.my - my);
 
       if (Game.totalTime >= 2.0) {
         if (Math.random() < 0.5) {
@@ -397,7 +397,7 @@ class Bot extends Entity {
   }
 
   function chasePlayer() {
-    var pl = Game.main.player;
+    var pl = Game.scene.player;
     if (pl == null) return;
     evil = false;
     if (pl.mx == mx) {
@@ -446,10 +446,10 @@ class Bot extends Entity {
       art.cache(1).size(3).color(0xc24079).lcircle(7/4,7/4,7/4);
     }
 
-    if (Game.main.player != null &&
-        hit(Game.main.player) && Game.main.player.leaving < 0) {
+    if (Game.scene.player != null &&
+        hit(Game.scene.player) && Game.scene.player.leaving < 0) {
       new Sound("player explode").explosion(2).play();
-      Game.endGame();
+      Game.scene.endGame();
     }
   }
 }
@@ -473,10 +473,10 @@ class Gate extends Entity {
       o = Math.max(0.0, o - 4*Game.time);
       art.clear().color(0x444444).rect(0, 0, 20, 20).color(0x3dbf86).rect(10 - 5*o, 10 - 5*o, 10*o, 10*o);
     }
-    if (unlocked && Game.main.player != null &&
-        Game.main.player.leaving <= 0 && hit(Game.main.player)) {
+    if (unlocked && Game.scene.player != null &&
+        Game.scene.player.leaving <= 0 && hit(Game.scene.player)) {
       new Sound("gate").powerup(3).play();
-      Game.main.player.door();
+      Game.scene.player.door();
     }
   }
 }
@@ -489,9 +489,9 @@ class Key extends Entity {
   }
 
   override public function update() {
-    if (Game.main.player != null && hit(Game.main.player)) {
+    if (Game.scene.player != null && hit(Game.scene.player)) {
       remove();
-      Game.main.gate.open();
+      Game.scene.gate.open();
       new Sound("key").coin(12).play();
     }
   }
@@ -504,7 +504,7 @@ class Final extends Entity {
   var step: Float;
   override public function begin() {
     art.color(0xFFFFFF).rect(0, 0, 480, 80);
-    t = new Text().size(3).color(0xff000000).text("You've reached level " + Game.main.level);
+    t = new Text().size(3).color(0xff000000).text("You've reached level " + Game.scene.level);
     t.pos.x = pos.x = -240;
     t.pos.y = pos.y = 240;
     step = 0;
