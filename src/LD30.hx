@@ -1,15 +1,12 @@
 //@ ugl.bgcolor = 0x83CBC8
 
 /*
-- win condition
-- lose when time up
-- start new level
+- level transition
 - sounds
 - when bump on planets, move it outside
 - bump on earth
 - glow colors
-- time bonus
-
+- text messages
 */
 
 import vault.ugl.*;
@@ -34,7 +31,9 @@ class C {
 class LD30 extends Micro {
   var camera: Vec2;
   var far: Float;
-  var planets: Int;
+  public var planets: Int;
+  public var linked: Int;
+  var level: Int;
   public var player: Player;
   static public function main() {
     Micro.baseColor = 0x000000;
@@ -45,11 +44,14 @@ class LD30 extends Micro {
     var n = 0;
     var skipped = 0;
 
-    var dim = Math.ceil(Math.sqrt(total/5));
+    var dim = Math.ceil(total/5);
+    var dimx = Math.ceil(Math.sqrt(dim));
+    var dimy = Math.ceil(dim/dimx);
+    trace(total + " => " + dimx + ", " + dimy);
 
     while (n < total && skipped < 10*total) {
-      var x = (240 - dim*480/2) + dim*480*Math.random();
-      var y = -480*dim + 480*dim*Math.random();
+      var x = (240 - dimx*480/2) + dimx*480*Math.random();
+      var y = -480*dimy + 480*dimy*Math.random();
       var s = 30 + 20*Math.random();
 
       var valid = true;
@@ -69,29 +71,84 @@ class LD30 extends Micro {
         skipped++;
       }
     }
+
+    planets = n;
+    new DropZone(dimx, dimy);
   }
 
-
   override public function begin() {
-    player = new Player();
-    camera = new Vec2(0, 0);
-    new Earth();
-
-    buildPlanets(50);
-    new Timer(20);
+    level = 0;
+    buildLevel();
   }
 
   override public function update() {
     camera.x = 240-player.pos.x;
     camera.y = 240-player.pos.y;
 
-    player.pos.add(camera);
-
-    for (t in [ "Rope", "Planet", "Earth" ]) {
+    for (t in [ "Player", "Rope", "Planet", "Earth", "DropZone", "ZoneBar" ]) {
       for (obj in Game.get(t)) {
         obj.pos.add(camera);
       }
     }
+  }
+
+  static var LEVELS = [ 3, 5, 8, 10, 15, 20, 30, 50 ];
+
+  public function buildLevel() {
+    Game.clear(null);
+
+    player = new Player();
+    camera = new Vec2(0, 0);
+    new Earth();
+
+    planets = LEVELS[level];
+
+    buildPlanets(planets);
+    new Timer(5 + planets*1.4);
+    new Pieces();
+  }
+
+  public function nextLevel() {
+    level++;
+    buildLevel();
+  }
+
+  public function failGame() {
+    endGame();
+  }
+}
+
+class Pieces extends Entity {
+  static var layer = 1000;
+  override public function begin() {
+    pos.x = 60;
+    pos.y = 10;
+    alignment = TOPLEFT;
+
+    update();
+  }
+
+  override public function update() {
+    gfx.clear();
+    gfx.fill(C.yellow, 0.75);
+
+    var i = 0;
+    var cnt = 0;
+    for (obj in Game.get("Planet")) {
+      var p:Planet = cast obj;
+      if (p.link > 0) {
+        p.linktimer = Math.min(1.0, p.linktimer + Game.time);
+        var s = Std.int(10*Ease.elasticOut(p.linktimer));
+        gfx.rect(2 + i*358/Game.scene.planets, 5 - s/2, 358/Game.scene.planets, s);
+        if (p.linktimer >= 1.0) {
+          cnt++;
+        }
+      }
+      i++;
+    }
+    gfx.rect(0, 0, 2, 10).rect(358, 0, 2, 10).rect(0, 4, 360, 2);
+
+    Game.scene.linked = cnt;
   }
 }
 
@@ -103,34 +160,30 @@ class Timer extends Entity {
   override public function begin() {
     total = args[0];
     current = 0.0;
-    draw();
     pos.x = 240;
     pos.y = 460;
-  }
-
-  function draw() {
-    gfx.clear();
-    gfx.fill(C.black, 0.2).rect(0, 0, 360, 10);
-    var r = Math.min(1.0, current/total);
-    var c = C.darkyellow;
-    if (r > 0.75) {
-      c = C.darkred;
-      if (r > 0.9) {
-        if (flip > 1.0) {
-          c = C.darkyellow;
-          if (flip >= 2.0) {
-            flip -= 2.0;
-          }
-        }
-        flip += Game.time/0.1;
-      }
-    }
-    gfx.fill(c, 1.0).rect(0, 0, 360*r, 10);
+    update();
   }
 
   override public function update() {
     current += Game.time;
-    draw();
+    gfx.clear();
+    gfx.fill(C.black, 0.2).rect(0, 0, 360, 10);
+    var r = Math.min(1.0, current/total);
+    var c = C.darkred;
+    if (r > 0.8) {
+      if (flip > 1.0) {
+        c = C.darkyellow;
+        if (flip >= 2.0) {
+          flip -= 2.0;
+        }
+      }
+      flip += Game.time/0.1;
+    }
+    gfx.fill(c, 1.0).rect(0, 0, 360*r, 10);
+    if (current >= total) {
+      Game.scene.failGame();
+    }
   }
 }
 
@@ -167,7 +220,7 @@ class Player extends Entity {
     acc.add(fric);
 
     var drag = vel.copy();
-    var factor = -0.001 - 0.01*(rope.targetpoint.length*rope.targetpoint.length/(480*480));
+    var factor = -0.001 - 0.005*(rope.targetpoint.length*rope.targetpoint.length/(480*480));
 
     drag.mul(factor*vel.length);
     acc.add(drag);
@@ -278,6 +331,7 @@ class Rope extends Entity {
         target = p;
         draw();
         stretchTo(tg);
+        if (p.link <= 0) p.linktimer = 0.0;
         p.link += 1;
         p.draw();
       }
@@ -289,6 +343,7 @@ class Planet extends Entity {
   static var layer = 15;
   public var link: Int;
   public var size: Int;
+  public var linktimer: Float;
 
   override public function begin() {
     this.size = args[2];
@@ -339,6 +394,8 @@ class Planet extends Entity {
 
       x.mul(7000);
       p.acc.add(x);
+      Game.shake(0.2);
+      Micro.flash(C.white, 0.05);
 
     }
   }
@@ -382,4 +439,62 @@ class Earth extends Entity {
     pos.x = 240;
     pos.y = 710;
   }
+}
+
+class ZoneBar extends Entity {
+  override public function begin() {
+    pos.x = args[0];
+    pos.y = args[1];
+    alignment = TOPLEFT;
+
+    if (args[2]) {
+      var p = 0;
+      var b = false;
+      while (p < args[3]) {
+        if (b) {
+          gfx.fill(C.black, 0.1).rect(p, 0, 10, 4);
+        }
+        b = !b;
+        p += 10;
+      }
+    } else {
+      var p = 0;
+      var b = false;
+      while (p < args[3]) {
+        if (b) {
+          gfx.fill(C.black, 0.1).rect(0, p, 4, 10);
+        }
+        b = !b;
+        p += 10;
+      }
+    }
+  }
+}
+
+class DropZone extends Entity {
+  static var layer = 10;
+  override public function begin() {
+    var sizex = args[0]*480 + 240;
+    var sizey = args[1]*480 + 240;
+
+    pos.x = (240 - sizex/2);
+    pos.y = -sizey + 120;
+    alignment = TOPLEFT;
+
+    new ZoneBar(pos.x, pos.y, true, sizex);
+    new ZoneBar(pos.x, pos.y + sizey, true, sizex);
+    new ZoneBar(pos.x, pos.y, false, sizey);
+    new ZoneBar(pos.x + sizex, pos.y, false, sizey);
+
+    addHitBox(Rect(0, 0, sizex, sizey));
+  }
+
+  override public function update() {
+    if (!hit(Game.scene.player)) {
+      if (Game.scene.linked >= Game.scene.planets) {
+        Game.scene.nextLevel();
+      }
+    }
+  }
+
 }
