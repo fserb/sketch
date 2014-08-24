@@ -1,5 +1,17 @@
 //@ ugl.bgcolor = 0x83CBC8
 
+/*
+- win condition
+- lose when time up
+- start new level
+- sounds
+- when bump on planets, move it outside
+- bump on earth
+- glow colors
+- time bonus
+
+*/
+
 import vault.ugl.*;
 import flash.geom.Point;
 import flash.geom.Rectangle;
@@ -29,57 +41,96 @@ class LD30 extends Micro {
     new LD30("Tin Can Universe", "");
   }
 
-  override public function begin() {
-    player = new Player();
-    camera = new Vec2(0, 0);
-    new Planet(120, 300, 30);
-    new Planet(360, 150, 20);
-    far = 0.0;
-    planets = 0;
+  function buildPlanets(total:Int) {
+    var n = 0;
+    var skipped = 0;
+
+    var dim = Math.ceil(Math.sqrt(total/5));
+
+    while (n < total && skipped < 10*total) {
+      var x = (240 - dim*480/2) + dim*480*Math.random();
+      var y = -480*dim + 480*dim*Math.random();
+      var s = 30 + 20*Math.random();
+
+      var valid = true;
+      for (e in Game.get("Planet")) {
+        var p:Planet = cast e;
+        var d = p.pos.distance(Vec2.make(x,y)).length;
+        if (d < (s + p.size + 60)) {
+          valid = false;
+          break;
+        }
+      }
+
+      if (valid) {
+        new Planet(x, y, s);
+        n++;
+      } else {
+        skipped++;
+      }
+    }
   }
 
 
+  override public function begin() {
+    player = new Player();
+    camera = new Vec2(0, 0);
+    new Earth();
+
+    buildPlanets(50);
+    new Timer(20);
+  }
+
   override public function update() {
-    camera.y = Math.max(50*Game.time, 50-player.pos.y);
     camera.x = 240-player.pos.x;
+    camera.y = 240-player.pos.y;
 
     player.pos.add(camera);
-    far += camera.y;
 
-    var sub = camera.copy();
-    sub.mul(0.1);
-    for (obj in Game.get("Star")) {
-      obj.pos.add(sub);
-    }
-
-    for (t in [ "Meteor" ]) {
+    for (t in [ "Rope", "Planet", "Earth" ]) {
       for (obj in Game.get(t)) {
         obj.pos.add(camera);
       }
     }
+  }
+}
 
-    for (obj in Game.get("Rope")) {
-      var r: Rope = cast obj;
-      obj.pos.add(camera);
-      if ((r.target == null || r.target.dead) && (r.root == null || r.root.dead)) {
-        obj.remove();
+class Timer extends Entity {
+  static var layer = 1000;
+  var total: Float;
+  var current: Float;
+  var flip: Float = 0.0;
+  override public function begin() {
+    total = args[0];
+    current = 0.0;
+    draw();
+    pos.x = 240;
+    pos.y = 460;
+  }
+
+  function draw() {
+    gfx.clear();
+    gfx.fill(C.black, 0.2).rect(0, 0, 360, 10);
+    var r = Math.min(1.0, current/total);
+    var c = C.darkyellow;
+    if (r > 0.75) {
+      c = C.darkred;
+      if (r > 0.9) {
+        if (flip > 1.0) {
+          c = C.darkyellow;
+          if (flip >= 2.0) {
+            flip -= 2.0;
+          }
+        }
+        flip += Game.time/0.1;
       }
     }
+    gfx.fill(c, 1.0).rect(0, 0, 360*r, 10);
+  }
 
-    for (obj in Game.get("Planet")) {
-      obj.pos.add(camera);
-      if (obj.pos.y > (480+50) && player.rope.root != obj) {
-        obj.remove();
-      }
-    }
-
-    if (planets*120 < far) {
-      planets++;
-      new Planet(80 + 320*Math.random() - 480, -50, 20 + 30*Math.random());
-      new Planet(80 + 320*Math.random(), -50, 20 + 30*Math.random());
-      new Planet(80 + 320*Math.random() + 480, -50, 20 + 30*Math.random());
-    }
-
+  override public function update() {
+    current += Game.time;
+    draw();
   }
 }
 
@@ -116,7 +167,7 @@ class Player extends Entity {
     acc.add(fric);
 
     var drag = vel.copy();
-    var factor = -0.001 - 0.02*(rope.targetpoint.length*rope.targetpoint.length/(480*480));
+    var factor = -0.001 - 0.01*(rope.targetpoint.length*rope.targetpoint.length/(480*480));
 
     drag.mul(factor*vel.length);
     acc.add(drag);
@@ -237,7 +288,7 @@ class Rope extends Entity {
 class Planet extends Entity {
   static var layer = 15;
   public var link: Int;
-  var size: Int;
+  public var size: Int;
 
   override public function begin() {
     this.size = args[2];
@@ -246,6 +297,7 @@ class Planet extends Entity {
     link = 0;
     draw();
     addHitBox(Circle(10 + size, 10 + size, size));
+    new PlanetShow(this);
   }
 
   public function draw() {
@@ -276,5 +328,58 @@ class Planet extends Entity {
     var d2 = tan.second.distance(t).length;
 
     return (d1 <= d2) ? tan.first : tan.second;
+  }
+
+  override public function update() {
+    if (hit(Game.scene.player)) {
+      var p = Game.scene.player;
+      var x = p.pos.copy();
+      x.sub(pos);
+      x.normalize();
+
+      x.mul(7000);
+      p.acc.add(x);
+
+    }
+  }
+
+}
+
+class PlanetShow extends Entity {
+  static var layer = 450;
+  var target: Planet;
+
+  override public function begin() {
+    target = args[0];
+  }
+
+  override public function update() {
+    pos.x = target.pos.x;
+    pos.y = target.pos.y;
+
+    if (target.link <= 0 && (pos.x < 0 || pos.y < 0 || pos.x >= 480 || pos.y >= 480)) {
+      var dist = pos.distance(Vec2.make(240, 240)).length - 240;
+      var op = 1.0 - Math.max(0.0, Math.min(0.9, dist/(480*2)));
+
+      gfx.clear().fill(C.black, op).mt(0, 0).lt(7.5, 5).lt(0, 10).lt(0, 0);
+
+      pos.x = Math.max(10, Math.min(470, pos.x));
+      pos.y = Math.max(10, Math.min(470, pos.y));
+
+      var v = pos.distance(new Vec2(240, 240));
+      angle = v.angle;
+
+    } else {
+      gfx.clear();
+    }
+  }
+}
+
+class Earth extends Entity {
+  static var layer = 20;
+  override public function begin() {
+    gfx.fill(C.white).circle(300, 300, 300);
+    pos.x = 240;
+    pos.y = 710;
   }
 }
