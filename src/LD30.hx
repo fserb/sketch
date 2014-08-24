@@ -1,7 +1,7 @@
 //@ ugl.bgcolor = 0x83CBC8
 
 /*
-- level transition
+- end message
 - glow colors
 */
 
@@ -31,6 +31,7 @@ class LD30 extends Micro {
   public var linked: Int;
   public var level: Int;
   public var player: Player;
+  public var transition: Bool = false;
   static public function main() {
     new Sound("hit").vol(0.1).explosion(1238);
     new Sound("connect").vol(0.1).powerup(1246);
@@ -123,22 +124,63 @@ class LD30 extends Micro {
       timer = 600;
       new Intro();
     }
-    new Timer(timer);
+    new TimerBar(timer);
     new Pieces();
+    transition = false;
   }
 
   public function nextLevel() {
-    level++;
-    buildLevel();
+    transition = true;
+    new Fader(false);
+    new Timer().delay(1).run(function() {
+      level++;
+      buildLevel();
+      new Fader(true);
+      return false;
+    });
   }
 
   public function failGame() {
+    if (transition) return;
     /*endGame();*/
   }
 }
 
+class Fader extends Entity {
+  var opacity = 0.0;
+  var fadein: Bool;
+  static var layer = 999;
+  var delay = 0.0;
+  override public function begin() {
+    pos.x = pos.y = 0;
+    alignment = TOPLEFT;
+    fadein = args[0];
+    opacity = fadein ? 1.0 : 0.0;
+    delay = args[1] == null ? 0.0 : args[1];
+  }
+
+  override public function update() {
+    if (delay > 0) {
+      delay -= Game.time;
+      ticks = 0;
+    }
+
+    opacity = (fadein ? 1.0 - Ease.cubicIn(ticks): Ease.cubicOut(ticks));
+    gfx.clear().fill(C.cyan,opacity).rect(0, 0, 480, 480);
+
+    if (ticks >= 1.5) {
+      remove();
+    }
+  }
+
+}
+
 class Intro extends Entity {
-  function msg(t: Float, y: Float, msg: String, ?dur:Int = 6) {
+  override public function begin() {
+    new Fader(true, 10);
+  }
+
+  function msg(t: Float, y: Float, msg: String, ?dur:Float = 6) {
     if ((ticks - Game.time) < t && ticks >= t) {
       new Text().text(msg).xy(240, y).color(C.black).size(2).duration(dur);
     }
@@ -146,17 +188,17 @@ class Intro extends Entity {
 
   var linked = false;
   override public function update() {
-    msg(1, 60, "It is a period of civil war.", 9);
-    msg(2, 90, "Our new cat video startup", 8);
-    msg(2, 110,"wants to expand outside earth.", 8);
+    msg(0.1, 90, "It is a period of civil war.", 7.9);
+    msg(2, 130, "Our new cat video startup", 6);
+    msg(2, 150,"wants to expand outside earth.", 6);
 
-    msg(4, 150, "Comcast space internet sucks.", 6);
-    msg(6, 190, "We need to pass our own cables.", 4);
+    msg(4, 190, "Comcast space internet sucks.", 4);
+    msg(6, 230, "We need to pass our own cables.", 2);
 
-    msg(11, 80, "Go around all planets.", 5);
-    msg(11, 110, "The cable can make you slower.", 5);
-    msg(11, 140, "Leave the area when you are done.", 5);
-    msg(11, 170, "Finish before the time!", 5);
+    msg(9, 80, "Go around all planets.", 4);
+    msg(9, 110, "The cable can make you slower.", 4);
+    msg(9, 140, "Leave the area when you are done.", 4);
+    msg(9, 170, "Finish before the time!", 4);
 
     if (!linked && Game.scene.linked >= Game.scene.planets) {
       linked = true;
@@ -168,7 +210,7 @@ class Intro extends Entity {
 }
 
 class Pieces extends Entity {
-  static var layer = 1000;
+  static var layer = 900;
   override public function begin() {
     pos.x = 60;
     pos.y = 10;
@@ -201,8 +243,8 @@ class Pieces extends Entity {
   }
 }
 
-class Timer extends Entity {
-  static var layer = 1000;
+class TimerBar extends Entity {
+  static var layer = 900;
   var total: Float;
   var current: Float;
   var flip: Float = 0.0;
@@ -558,6 +600,7 @@ class DropZone extends Entity {
   }
 
   override public function update() {
+    if (Game.scene.transition) return;
     if (!hit(Game.scene.player)) {
       if (Game.scene.linked >= Game.scene.planets) {
         new Sound("done").play();
