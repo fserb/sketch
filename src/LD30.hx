@@ -19,21 +19,77 @@ class C {
   static public var black = 0x323431;
   static public var cyan = 0x83CBC8;
 
-  static public var blue = 0x90A5D3;
-  static public var yellow = 0xFFE0A5;
-  static public var red = 0xFFCDA5;
+  static public var blue = 0x435E98;
+  static public var yellow = 0xE4B455;
+  static public var red = 0xE49555;
 }
 
 class LD30 extends Micro {
+  var camera: Vec2;
+  public var player: Player;
   static public function main() {
     Micro.baseColor = 0x000000;
-    new LD30("", "");
+    new LD30("Tin Can Universe", "");
   }
 
   override public function begin() {
-    new Player();
-    new Planet(120, 150);
+    player = new Player();
+    camera = new Vec2(0, 0);
+    new Planet(120, 300);
     new Planet(360, 150);
+    new Meteor();
+  }
+
+  var cnt = 0.0;
+
+  override public function update() {
+    /*camera.x = 240 - player.pos.x;
+    camera.y = 240 - player.pos.y;*/
+    camera.y = Math.max(10*Game.time, 100-player.pos.y);
+    camera.x = 240-player.pos.x;
+
+    player.pos.add(camera);
+
+    for (t in [ "Meteor" ]) {
+      for (obj in Game.get(t)) {
+        obj.pos.add(camera);
+      }
+    }
+
+    for (obj in Game.get("Rope")) {
+      var r: Rope = cast obj;
+      obj.pos.add(camera);
+      if ((r.target == null || r.target.dead) && (r.root == null || r.root.dead)) {
+        obj.remove();
+      }
+    }
+
+
+    var planets = 0;
+    for (obj in Game.get("Planet")) {
+      obj.pos.add(camera);
+      if (obj.pos.y > (480+50) && player.rope.root != obj) {
+        obj.remove();
+      } else {
+        planets++;
+      }
+    }
+
+    if (planets < 5) {
+      var p = new Planet(Math.random()*480, -50 -300*Math.random());
+      if (p.hitGroup("Planet") != null) {
+        trace("remove");
+        p.remove();
+      }
+    }
+
+    cnt += Game.time;
+    if (cnt > 2) {
+      cnt -= 2;
+      new Meteor();
+    }
+
+
   }
 }
 
@@ -48,7 +104,7 @@ class Player extends Entity {
       .circle(30 - 10, 30 + 10, 5)
       .circle(30 + 10, 30 + 10, 5)
       .circle(30, 30, 10);
-    effect.glow(5, C.yellow);
+    effect.glow(5, C.white);
 
     rope = new Rope(this, new Vec2(240, 480));
   }
@@ -77,8 +133,8 @@ class Player extends Entity {
 
 class Rope extends Entity {
   static var layer = 10;
-  var target: Entity;
-  var root: Planet;
+  public var target: Entity;
+  public var root: Planet;
   var rootdir: Bool;
   var rootpos: Vec2;
   public var targetpoint: Vec2;
@@ -123,6 +179,7 @@ class Rope extends Entity {
     if (!active) {
       return;
     }
+    Game.scene.player.rope = this;
 
     if (root != null) {
       var t = root.getTangents(target.pos);
@@ -141,7 +198,7 @@ class Rope extends Entity {
       rootpos = pos;
       roll += ang;
       if (roll < 0) {
-        var r = new Rope(prev.target, prev.pos);
+        var r = new Rope(Game.scene.player, prev.pos);
         r.prev = prev.prev;
         r.root = prev.root;
         r.rootdir = prev.rootdir;
@@ -171,6 +228,7 @@ class Rope extends Entity {
         r.rootpos = tg;
 
         active = false;
+        target = p;
         draw();
         stretchTo(tg);
         p.link += 1;
@@ -186,7 +244,7 @@ class Planet extends Entity {
   var size: Int;
 
   override public function begin() {
-    this.size = 30;
+    this.size = Std.int(20 + 40*Math.random());
     pos.x = args[0];
     pos.y = args[1];
     link = 0;
@@ -223,5 +281,36 @@ class Planet extends Entity {
 
     return (d1 <= d2) ? tan.first : tan.second;
   }
+}
+
+class Meteor extends Entity {
+  static var layer = 100;
+  var rotation = 0.0;
+  override public function begin() {
+    pos.x = 480*Math.random();
+    pos.y = -50;
+    var p = Std.int(3 + 4*Math.random());
+
+    var pts = new Array<Vec2>();
+    var da = 2*Math.PI/p;
+    for (i in 0...p) {
+      pts.push(new Vec2(30 + 12*Math.cos(da*i), 30 + 12*Math.sin(da*i)));
+    }
+
+    gfx.size(60, 60).fill(C.yellow);
+    gfx.mt(pts[0].x, pts[0].y);
+    for (i in 1...p) {
+      gfx.lt(pts[i].x, pts[i].y);
+    }
+    rotation = Math.PI*(0.5 + 1.5*Math.random());
+    if (Math.random() < 0.5) rotation = -rotation;
+    vel.length = 20 + 100*Math.random();
+    vel.angle = Math.PI*Math.random();
+  }
+
+  override public function update() {
+    angle += Game.time*rotation;
+  }
+
 
 }
