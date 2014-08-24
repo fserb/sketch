@@ -1,11 +1,5 @@
 //@ ugl.bgcolor = 0x83CBC8
 
-/*
-ideas:
-- random position hashi
--
-*/
-
 import vault.ugl.*;
 import flash.geom.Point;
 import flash.geom.Rectangle;
@@ -27,6 +21,8 @@ class C {
 
 class LD30 extends Micro {
   var camera: Vec2;
+  var far: Float;
+  var planets: Int;
   public var player: Player;
   static public function main() {
     Micro.baseColor = 0x000000;
@@ -38,12 +34,51 @@ class LD30 extends Micro {
     camera = new Vec2(0, 0);
     new Planet(120, 300, 30);
     new Planet(360, 150, 20);
-    new Probe(75, 75);
+    far = 0.0;
+    planets = 0;
   }
 
-  var cnt = 0.0;
 
   override public function update() {
+    camera.y = Math.max(50*Game.time, 50-player.pos.y);
+    camera.x = 240-player.pos.x;
+
+    player.pos.add(camera);
+    far += camera.y;
+
+    var sub = camera.copy();
+    sub.mul(0.1);
+    for (obj in Game.get("Star")) {
+      obj.pos.add(sub);
+    }
+
+    for (t in [ "Meteor" ]) {
+      for (obj in Game.get(t)) {
+        obj.pos.add(camera);
+      }
+    }
+
+    for (obj in Game.get("Rope")) {
+      var r: Rope = cast obj;
+      obj.pos.add(camera);
+      if ((r.target == null || r.target.dead) && (r.root == null || r.root.dead)) {
+        obj.remove();
+      }
+    }
+
+    for (obj in Game.get("Planet")) {
+      obj.pos.add(camera);
+      if (obj.pos.y > (480+50) && player.rope.root != obj) {
+        obj.remove();
+      }
+    }
+
+    if (planets*120 < far) {
+      planets++;
+      new Planet(80 + 320*Math.random() - 480, -50, 20 + 30*Math.random());
+      new Planet(80 + 320*Math.random(), -50, 20 + 30*Math.random());
+      new Planet(80 + 320*Math.random() + 480, -50, 20 + 30*Math.random());
+    }
 
   }
 }
@@ -81,7 +116,7 @@ class Player extends Entity {
     acc.add(fric);
 
     var drag = vel.copy();
-    var factor = -0.001 - 0.05*(rope.targetpoint.length*rope.targetpoint.length/(480*480));
+    var factor = -0.001 - 0.02*(rope.targetpoint.length*rope.targetpoint.length/(480*480));
 
     drag.mul(factor*vel.length);
     acc.add(drag);
@@ -241,96 +276,5 @@ class Planet extends Entity {
     var d2 = tan.second.distance(t).length;
 
     return (d1 <= d2) ? tan.first : tan.second;
-  }
-}
-
-class Probe extends Entity {
-  static var layer = 250;
-  var target: Vec2;
-  var radar: Radar;
-  var boost: Float = 0.0;
-
-  static public function pentagon(center:Vec2, size: Float): Array<Vec2> {
-    var pts = new Array<Vec2>();
-    var an = 2*Math.PI/5;
-    for (i in 0...5) {
-      pts.push(new Vec2(center.x + size*Math.cos(an*i), center.y + size*Math.sin(an*i)));
-    }
-    return pts;
-  }
-
-  override public function begin() {
-    var pts = pentagon(new Vec2(50, 50), 12);
-    addHitBox(Polygon(pts));
-    pos.x = args[0];
-    pos.y = args[1];
-
-    gfx.size(100, 100).fill(C.darkred);
-    gfx.mt(pts[0].x, pts[0].y);
-    for (i in 1...5) {
-      gfx.lt(pts[i].x, pts[i].y);
-    }
-    radar = new Radar(this);
-    target = new Vec2(480*Math.random(), 480*Math.random());
-  }
-
-  override public function update() {
-    angle += Game.time*Math.PI/3;
-
-    var d = target.distance(pos);
-    d.length = Math.min(boost > 0 ? 250 : 50, d.length/Game.time);
-    if (boost > 0) boost -= Game.time;
-    vel = d;
-    if (d.length < 10) {
-      target = new Vec2(480*Math.random(), 480*Math.random());
-    }
-
-    if (radar.hitGroup("Rope") != null || radar.hitGroup("Player") != null) {
-      target = Game.scene.player.pos.copy();
-      boost = 5;
-      trace("boost");
-    }
-  }
-
-}
-
-class Radar extends Entity {
-  static var layer = 250;
-
-  var probe: Probe;
-  var size: Float;
-  var dir: Bool = true;
-  override public function begin() {
-    probe = args[0];
-    size = 12;
-    draw();
-  }
-
-  function draw() {
-    var pts = Probe.pentagon(new Vec2(100, 100), size);
-    gfx.clear();
-    gfx.size(200, 200).line(1, C.darkred);
-    gfx.mt(pts[0].x, pts[0].y);
-    for (i in 1...5) {
-      gfx.lt(pts[i].x, pts[i].y);
-    }
-
-    clearHitBox();
-    addHitBox(Polygon(pts));
-  }
-
-  override public function update() {
-    pos.x = probe.pos.x;
-    pos.y = probe.pos.y;
-    angle = probe.angle;
-
-    if (dir) {
-      size = Math.min(70, size + Game.time*50/2);
-      if (size >= 70) dir = false;
-    } else {
-      size = Math.max(12, size - Game.time*50/2);
-      if (size <= 12) dir = true;
-    }
-    draw();
   }
 }
