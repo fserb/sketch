@@ -2,8 +2,6 @@
 
 /*
 - level transition
-- when bump on planets, move it outside
-- bump on earth
 - glow colors
 - text messages
 */
@@ -35,10 +33,10 @@ class LD30 extends Micro {
   var level: Int;
   public var player: Player;
   static public function main() {
-    new Sound("hit").explosion(1238);
-    new Sound("connect").powerup(1246);
-    new Sound("leave").hit(1259);
-    new Sound("done").powerup(1274);
+    new Sound("hit").vol(0.1).explosion(1238);
+    new Sound("connect").vol(0.1).powerup(1246);
+    new Sound("leave").vol(0.1).hit(1259);
+    new Sound("done").vol(0.1).powerup(1274);
 
     Micro.baseColor = 0x000000;
     new LD30("Tin Can Universe", "");
@@ -240,6 +238,23 @@ class Player extends Entity {
 
     angle = vel.angle + Math.PI/2;
   }
+
+  public function bumpOut(c: Vec2, r: Float) {
+    var x = pos.copy();
+    x.sub(c);
+
+    if (x.length < r) {
+       x.length = r - x.length;
+       pos.add(x);
+    }
+    x.normalize();
+
+    x.mul(7000);
+    acc.add(x);
+    Game.shake(0.2);
+    Micro.flash(C.white, 0.05);
+    new Sound("hit").play();
+  }
 }
 
 class Rope extends Entity {
@@ -403,17 +418,7 @@ class Planet extends Entity {
 
   override public function update() {
     if (hit(Game.scene.player)) {
-      var p = Game.scene.player;
-      var x = p.pos.copy();
-      x.sub(pos);
-      x.normalize();
-
-      x.mul(7000);
-      p.acc.add(x);
-      Game.shake(0.2);
-      Micro.flash(C.white, 0.05);
-      new Sound("hit").play();
-
+      Game.scene.player.bumpOut(pos, size);
     }
   }
 
@@ -455,6 +460,13 @@ class Earth extends Entity {
     gfx.fill(C.white).circle(300, 300, 300);
     pos.x = 240;
     pos.y = 710;
+    addHitBox(Circle(300, 300, 300));
+  }
+
+  override public function update() {
+    if (hit(Game.scene.player)) {
+      Game.scene.player.bumpOut(pos, 300);
+    }
   }
 }
 
