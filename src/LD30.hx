@@ -2,7 +2,6 @@
 
 /*
 - level transition
-- sounds
 - when bump on planets, move it outside
 - bump on earth
 - glow colors
@@ -36,6 +35,11 @@ class LD30 extends Micro {
   var level: Int;
   public var player: Player;
   static public function main() {
+    new Sound("hit").explosion(1238);
+    new Sound("connect").powerup(1246);
+    new Sound("leave").hit(1259);
+    new Sound("done").powerup(1274);
+
     Micro.baseColor = 0x000000;
     new LD30("Tin Can Universe", "");
   }
@@ -81,7 +85,15 @@ class LD30 extends Micro {
     buildLevel();
   }
 
+  var xxx = 1234;
+
   override public function update() {
+    if (Game.key.b1_pressed) {
+      trace(xxx);
+      new Sound(""+xxx).powerup(xxx).play();
+      xxx++;
+    }
+
     camera.x = 240-player.pos.x;
     camera.y = 240-player.pos.y;
 
@@ -104,7 +116,7 @@ class LD30 extends Micro {
     planets = LEVELS[level];
 
     buildPlanets(planets);
-    new Timer(5 + planets*1.4);
+    new Timer(10 + planets*1.5);
     new Pieces();
   }
 
@@ -114,7 +126,7 @@ class LD30 extends Micro {
   }
 
   public function failGame() {
-    endGame();
+    /*endGame();*/
   }
 }
 
@@ -220,7 +232,8 @@ class Player extends Entity {
     acc.add(fric);
 
     var drag = vel.copy();
-    var factor = -0.001 - 0.005*(rope.targetpoint.length*rope.targetpoint.length/(480*480));
+    var f = rope.targetpoint.length/(480+240);
+    var factor = -0.001 - 0.01*f*f;
 
     drag.mul(factor*vel.length);
     acc.add(drag);
@@ -307,6 +320,7 @@ class Rope extends Entity {
 
         root.link -= 1;
         root.draw();
+        new Sound("leave").play();
 
         prev.remove();
         remove();
@@ -333,6 +347,8 @@ class Rope extends Entity {
         stretchTo(tg);
         if (p.link <= 0) p.linktimer = 0.0;
         p.link += 1;
+        new Sound("connect").play();
+        Game.delay(0.01);
         p.draw();
       }
     }
@@ -396,6 +412,7 @@ class Planet extends Entity {
       p.acc.add(x);
       Game.shake(0.2);
       Micro.flash(C.white, 0.05);
+      new Sound("hit").play();
 
     }
   }
@@ -492,6 +509,7 @@ class DropZone extends Entity {
   override public function update() {
     if (!hit(Game.scene.player)) {
       if (Game.scene.linked >= Game.scene.planets) {
+        new Sound("done").play();
         Game.scene.nextLevel();
       }
     }
