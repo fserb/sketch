@@ -3,7 +3,6 @@
 /*
 - level transition
 - glow colors
-- text messages
 */
 
 import vault.ugl.*;
@@ -30,7 +29,7 @@ class LD30 extends Micro {
   var far: Float;
   public var planets: Int;
   public var linked: Int;
-  var level: Int;
+  public var level: Int;
   public var player: Player;
   static public function main() {
     new Sound("hit").vol(0.1).explosion(1238);
@@ -102,7 +101,7 @@ class LD30 extends Micro {
     }
   }
 
-  static var LEVELS = [ 3, 5, 8, 10, 15, 20, 30, 50 ];
+  static var LEVELS = [ 2, 3, 5, 8, 10, 15, 20, 30, 50 ];
 
   public function buildLevel() {
     Game.clear(null);
@@ -111,10 +110,20 @@ class LD30 extends Micro {
     camera = new Vec2(0, 0);
     new Earth();
 
-    planets = LEVELS[level];
+    if (level < LEVELS.length) {
+      planets = LEVELS[level];
+    } else {
+      planets = (level-5)*17;
+    }
 
     buildPlanets(planets);
-    new Timer(10 + planets*1.5);
+    var timer = 10 + planets*1.5;
+
+    if (level == 0) {
+      timer = 600;
+      new Intro();
+    }
+    new Timer(timer);
     new Pieces();
   }
 
@@ -125,6 +134,36 @@ class LD30 extends Micro {
 
   public function failGame() {
     /*endGame();*/
+  }
+}
+
+class Intro extends Entity {
+  function msg(t: Float, y: Float, msg: String, ?dur:Int = 6) {
+    if ((ticks - Game.time) < t && ticks >= t) {
+      new Text().text(msg).xy(240, y).color(C.black).size(2).duration(dur);
+    }
+  }
+
+  var linked = false;
+  override public function update() {
+    msg(1, 60, "It is a period of civil war.", 9);
+    msg(2, 90, "Our new cat video startup", 8);
+    msg(2, 110,"wants to expand outside earth.", 8);
+
+    msg(4, 150, "Comcast space internet sucks.", 6);
+    msg(6, 190, "We need to pass our own cables.", 4);
+
+    msg(11, 80, "Go around all planets.", 5);
+    msg(11, 110, "The cable can make you slower.", 5);
+    msg(11, 140, "Leave the area when you are done.", 5);
+    msg(11, 170, "Finish before the time!", 5);
+
+    if (!linked && Game.scene.linked >= Game.scene.planets) {
+      linked = true;
+      new Text().text("Now get out of the area!").xy(240, 430).color(C.black).size(2).duration(100);
+    } else {
+      linked = false;
+    }
   }
 }
 
