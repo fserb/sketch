@@ -18,10 +18,11 @@ class C {
   static public var white = 0xf8e6c2;
   static public var black = 0x323431;
   static public var cyan = 0x83CBC8;
-
-  static public var blue = 0x435E98;
-  static public var yellow = 0xE4B455;
-  static public var red = 0xE49555;
+  static public var darkcyan = 0x348B87;
+  static public var yellow = 0xFFE0A5;
+  static public var darkyellow = 0xE4B455;
+  static public var red = 0xFEA4A6;
+  static public var darkred = 0xE25458;
 }
 
 class LD30 extends Micro {
@@ -35,60 +36,14 @@ class LD30 extends Micro {
   override public function begin() {
     player = new Player();
     camera = new Vec2(0, 0);
-    new Planet(120, 300);
-    new Planet(360, 150);
-    new Meteor();
+    new Planet(120, 300, 30);
+    new Planet(360, 150, 20);
+    new Probe(75, 75);
   }
 
   var cnt = 0.0;
 
   override public function update() {
-    /*camera.x = 240 - player.pos.x;
-    camera.y = 240 - player.pos.y;*/
-    camera.y = Math.max(10*Game.time, 100-player.pos.y);
-    camera.x = 240-player.pos.x;
-
-    player.pos.add(camera);
-
-    for (t in [ "Meteor" ]) {
-      for (obj in Game.get(t)) {
-        obj.pos.add(camera);
-      }
-    }
-
-    for (obj in Game.get("Rope")) {
-      var r: Rope = cast obj;
-      obj.pos.add(camera);
-      if ((r.target == null || r.target.dead) && (r.root == null || r.root.dead)) {
-        obj.remove();
-      }
-    }
-
-
-    var planets = 0;
-    for (obj in Game.get("Planet")) {
-      obj.pos.add(camera);
-      if (obj.pos.y > (480+50) && player.rope.root != obj) {
-        obj.remove();
-      } else {
-        planets++;
-      }
-    }
-
-    if (planets < 5) {
-      var p = new Planet(Math.random()*480, -50 -300*Math.random());
-      if (p.hitGroup("Planet") != null) {
-        trace("remove");
-        p.remove();
-      }
-    }
-
-    cnt += Game.time;
-    if (cnt > 2) {
-      cnt -= 2;
-      new Meteor();
-    }
-
 
   }
 }
@@ -98,15 +53,17 @@ class Player extends Entity {
   public var rope: Rope;
   override public function begin() {
     pos.x = pos.y = 240;
-    gfx.size(60, 60).fill(C.black, 1.0)
-      .circle(30, 30 - 5, 10)
-      .circle(30, 30 + 5, 10)
-      .circle(30 - 10, 30 + 10, 5)
-      .circle(30 + 10, 30 + 10, 5)
-      .circle(30, 30, 10);
+    gfx.size(40, 40).fill(C.black, 1.0)
+      .circle(20, 20 - 4, 8)
+      .circle(20, 20 + 4, 8)
+      .circle(20 - 8, 20 + 8, 4)
+      .circle(20 + 8, 20 + 8, 4)
+      .circle(20, 20, 8);
     effect.glow(5, C.white);
 
     rope = new Rope(this, new Vec2(240, 480));
+
+    addHitBox(Rect(12, 8, 16, 24));
   }
 
   override public function update() {
@@ -124,7 +81,9 @@ class Player extends Entity {
     acc.add(fric);
 
     var drag = vel.copy();
-    drag.mul(-0.005*vel.length);
+    var factor = -0.001 - 0.05*(rope.targetpoint.length*rope.targetpoint.length/(480*480));
+
+    drag.mul(factor*vel.length);
     acc.add(drag);
 
     angle = vel.angle + Math.PI/2;
@@ -172,7 +131,9 @@ class Rope extends Entity {
     deltasprite.y = targetpoint.y/2.0;
 
     clearHitBox();
-    addHitBox(Rect(3.5, 0, 3, targetpoint.length));
+    if (active) {
+      addHitBox(Rect(3.5, 0, 3, targetpoint.length));
+    }
   }
 
   override public function update() {
@@ -244,7 +205,7 @@ class Planet extends Entity {
   var size: Int;
 
   override public function begin() {
-    this.size = Std.int(20 + 40*Math.random());
+    this.size = args[2];
     pos.x = args[0];
     pos.y = args[1];
     link = 0;
@@ -283,34 +244,93 @@ class Planet extends Entity {
   }
 }
 
-class Meteor extends Entity {
-  static var layer = 100;
-  var rotation = 0.0;
-  override public function begin() {
-    pos.x = 480*Math.random();
-    pos.y = -50;
-    var p = Std.int(3 + 4*Math.random());
+class Probe extends Entity {
+  static var layer = 250;
+  var target: Vec2;
+  var radar: Radar;
+  var boost: Float = 0.0;
 
+  static public function pentagon(center:Vec2, size: Float): Array<Vec2> {
     var pts = new Array<Vec2>();
-    var da = 2*Math.PI/p;
-    for (i in 0...p) {
-      pts.push(new Vec2(30 + 12*Math.cos(da*i), 30 + 12*Math.sin(da*i)));
+    var an = 2*Math.PI/5;
+    for (i in 0...5) {
+      pts.push(new Vec2(center.x + size*Math.cos(an*i), center.y + size*Math.sin(an*i)));
     }
+    return pts;
+  }
 
-    gfx.size(60, 60).fill(C.yellow);
+  override public function begin() {
+    var pts = pentagon(new Vec2(50, 50), 12);
+    addHitBox(Polygon(pts));
+    pos.x = args[0];
+    pos.y = args[1];
+
+    gfx.size(100, 100).fill(C.darkred);
     gfx.mt(pts[0].x, pts[0].y);
-    for (i in 1...p) {
+    for (i in 1...5) {
       gfx.lt(pts[i].x, pts[i].y);
     }
-    rotation = Math.PI*(0.5 + 1.5*Math.random());
-    if (Math.random() < 0.5) rotation = -rotation;
-    vel.length = 20 + 100*Math.random();
-    vel.angle = Math.PI*Math.random();
+    radar = new Radar(this);
+    target = new Vec2(480*Math.random(), 480*Math.random());
   }
 
   override public function update() {
-    angle += Game.time*rotation;
+    angle += Game.time*Math.PI/3;
+
+    var d = target.distance(pos);
+    d.length = Math.min(boost > 0 ? 250 : 50, d.length/Game.time);
+    if (boost > 0) boost -= Game.time;
+    vel = d;
+    if (d.length < 10) {
+      target = new Vec2(480*Math.random(), 480*Math.random());
+    }
+
+    if (radar.hitGroup("Rope") != null || radar.hitGroup("Player") != null) {
+      target = Game.scene.player.pos.copy();
+      boost = 5;
+      trace("boost");
+    }
   }
 
+}
 
+class Radar extends Entity {
+  static var layer = 250;
+
+  var probe: Probe;
+  var size: Float;
+  var dir: Bool = true;
+  override public function begin() {
+    probe = args[0];
+    size = 12;
+    draw();
+  }
+
+  function draw() {
+    var pts = Probe.pentagon(new Vec2(100, 100), size);
+    gfx.clear();
+    gfx.size(200, 200).line(1, C.darkred);
+    gfx.mt(pts[0].x, pts[0].y);
+    for (i in 1...5) {
+      gfx.lt(pts[i].x, pts[i].y);
+    }
+
+    clearHitBox();
+    addHitBox(Polygon(pts));
+  }
+
+  override public function update() {
+    pos.x = probe.pos.x;
+    pos.y = probe.pos.y;
+    angle = probe.angle;
+
+    if (dir) {
+      size = Math.min(70, size + Game.time*50/2);
+      if (size >= 70) dir = false;
+    } else {
+      size = Math.max(12, size - Game.time*50/2);
+      if (size <= 12) dir = true;
+    }
+    draw();
+  }
 }
