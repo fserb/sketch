@@ -1,8 +1,6 @@
 //@ ugl.bgcolor = 0x83CBC8
 
 /*
-- end message
-- glow colors
 */
 
 import vault.ugl.*;
@@ -79,18 +77,12 @@ class LD30 extends Micro {
   }
 
   override public function begin() {
-    level = 0;
+    level = 1;
     buildLevel();
   }
 
-  var xxx = 1234;
-
   override public function update() {
-    if (Game.key.b1_pressed) {
-      trace(xxx);
-      new Sound(""+xxx).powerup(xxx).play();
-      xxx++;
-    }
+    if (Game.key.b1_pressed) failGame();
 
     camera.x = 240-player.pos.x;
     camera.y = 240-player.pos.y;
@@ -118,7 +110,7 @@ class LD30 extends Micro {
     }
 
     buildPlanets(planets);
-    var timer = 10 + planets*1.5;
+    var timer = 7 + planets*1.8;
 
     if (level == 0) {
       timer = 600;
@@ -130,6 +122,7 @@ class LD30 extends Micro {
   }
 
   public function nextLevel() {
+    new Score(level, false);
     transition = true;
     new Fader(false);
     new Timer().delay(1).run(function() {
@@ -140,9 +133,18 @@ class LD30 extends Micro {
     });
   }
 
+  override public function final() {
+    new Fader(false, 0.0, true);
+    new Score(level, true);
+    new Text().size(4).color(C.black).xy(240, 100).text("game over");
+    new Text().size(3).color(C.black).xy(240, 200).text("we brought cat videos to");
+    new Text().size(5).color(C.black).xy(240, 260).text("" + (level - 1));
+    new Text().size(3).color(C.black).xy(240, 320).text("quadrants");
+  }
+
   public function failGame() {
     if (transition) return;
-    /*endGame();*/
+    endGame();
   }
 }
 
@@ -150,6 +152,7 @@ class Fader extends Entity {
   var opacity = 0.0;
   var fadein: Bool;
   static var layer = 999;
+  var hold: Bool;
   var delay = 0.0;
   override public function begin() {
     pos.x = pos.y = 0;
@@ -157,6 +160,7 @@ class Fader extends Entity {
     fadein = args[0];
     opacity = fadein ? 1.0 : 0.0;
     delay = args[1] == null ? 0.0 : args[1];
+    hold = args[2];
   }
 
   override public function update() {
@@ -168,16 +172,15 @@ class Fader extends Entity {
     opacity = (fadein ? 1.0 - Ease.cubicIn(ticks): Ease.cubicOut(ticks));
     gfx.clear().fill(C.cyan,opacity).rect(0, 0, 480, 480);
 
-    if (ticks >= 1.5) {
+    if (!hold && ticks >= 1.5) {
       remove();
     }
   }
-
 }
 
 class Intro extends Entity {
   override public function begin() {
-    new Fader(true, 10);
+    new Fader(true, 8);
   }
 
   function msg(t: Float, y: Float, msg: String, ?dur:Float = 6) {
@@ -188,17 +191,17 @@ class Intro extends Entity {
 
   var linked = false;
   override public function update() {
-    msg(0.1, 90, "It is a period of civil war.", 7.9);
-    msg(2, 130, "Our new cat video startup", 6);
-    msg(2, 150,"wants to expand outside earth.", 6);
+    msg(0.1, 90, "It is a period of civil war.", 6.9);
+    msg(1.5, 130, "Our new cat video startup", 5.5);
+    msg(1.5, 150,"wants to expand outside earth.", 5.5);
 
-    msg(4, 190, "Comcast space internet sucks.", 4);
-    msg(6, 230, "We need to pass our own cables.", 2);
+    msg(3, 190, "Comcast space internet sucks.", 4);
+    msg(4.5, 230, "We need to pass our own cables.", 2.5);
 
-    msg(9, 80, "Go around all planets.", 4);
-    msg(9, 110, "The cable can make you slower.", 4);
-    msg(9, 140, "Leave the area when you are done.", 4);
-    msg(9, 170, "Finish before the time!", 4);
+    msg(7.5, 80, "Go around all planets.", 4);
+    msg(7.5, 110, "The cable can make you slower.", 4);
+    msg(7.5, 140, "Leave the quadrant when you are done.", 4);
+    msg(7.5, 170, "Finish before the time!", 4);
 
     if (!linked && Game.scene.linked >= Game.scene.planets) {
       linked = true;
