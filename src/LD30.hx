@@ -28,6 +28,7 @@ class LD30 extends Micro {
   public var planets: Int;
   public var linked: Int;
   public var level: Int;
+  public var score: Int;
   public var player: Player;
   public var transition: Bool = false;
   static public function main() {
@@ -37,7 +38,7 @@ class LD30 extends Micro {
     new Sound("done").vol(0.1).powerup(1274);
 
     Micro.baseColor = 0x000000;
-    new LD30("Tin Can Universe", "");
+    new LD30("Tin Can Internet", "");
   }
 
   function buildPlanets(total:Int) {
@@ -47,7 +48,6 @@ class LD30 extends Micro {
     var dim = Math.ceil(total/5);
     var dimx = Math.ceil(Math.sqrt(dim));
     var dimy = Math.ceil(dim/dimx);
-    trace(total + " => " + dimx + ", " + dimy);
 
     while (n < total && skipped < 10*total) {
       var x = (240 - dimx*480/2) + dimx*480*Math.random();
@@ -77,7 +77,8 @@ class LD30 extends Micro {
   }
 
   override public function begin() {
-    level = 1;
+    score = 0;
+    level = 0;
     buildLevel();
   }
 
@@ -122,7 +123,6 @@ class LD30 extends Micro {
   }
 
   public function nextLevel() {
-    new Score(level, false);
     transition = true;
     new Fader(false);
     new Timer().delay(1).run(function() {
@@ -135,11 +135,11 @@ class LD30 extends Micro {
 
   override public function final() {
     new Fader(false, 0.0, true);
-    new Score(level, true);
+    new Score(score, true);
     new Text().size(4).color(C.black).xy(240, 100).text("game over");
     new Text().size(3).color(C.black).xy(240, 200).text("we brought cat videos to");
-    new Text().size(5).color(C.black).xy(240, 260).text("" + (level - 1));
-    new Text().size(3).color(C.black).xy(240, 320).text("quadrants");
+    new Text().size(5).color(C.black).xy(240, 260).text("" + score);
+    new Text().size(3).color(C.black).xy(240, 320).text("planets");
   }
 
   public function failGame() {
@@ -240,7 +240,8 @@ class Pieces extends Entity {
       }
       i++;
     }
-    gfx.rect(0, 0, 2, 10).rect(358, 0, 2, 10).rect(0, 4, 360, 2);
+
+    gfx.fill(C.yellow, 0.75).rect(0, 0, 2, 10).rect(358, 0, 2, 10).rect(0, 4, 360, 2);
 
     Game.scene.linked = cnt;
   }
@@ -286,12 +287,12 @@ class Player extends Entity {
   public var rope: Rope;
   override public function begin() {
     pos.x = pos.y = 240;
-    gfx.size(40, 40).fill(C.black, 1.0)
-      .circle(20, 20 - 4, 8)
-      .circle(20, 20 + 4, 8)
-      .circle(20 - 8, 20 + 8, 4)
-      .circle(20 + 8, 20 + 8, 4)
-      .circle(20, 20, 8);
+    gfx.size(40, 40)
+      .fill(C.black, 1.0).circle(20, 20 - 4, 8)
+      .fill(C.black, 1.0).circle(20, 20 + 4, 8)
+      .fill(C.black, 1.0).circle(20 - 8, 20 + 8, 4)
+      .fill(C.black, 1.0).circle(20 + 8, 20 + 8, 4)
+      .fill(C.black, 1.0).circle(20, 20, 8);
     effect.glow(5, C.white);
 
     rope = new Rope(this, new Vec2(240, 480));
@@ -418,6 +419,9 @@ class Rope extends Entity {
         r.roll = prev.roll;
 
         root.link -= 1;
+        Game.scene.score--;
+        new Score(Game.scene.score, false);
+
         root.draw();
         new Sound("leave").play();
 
@@ -446,6 +450,8 @@ class Rope extends Entity {
         stretchTo(tg);
         if (p.link <= 0) p.linktimer = 0.0;
         p.link += 1;
+        Game.scene.score++;
+        new Score(Game.scene.score, false);
         new Sound("connect").play();
         Game.delay(0.01);
         p.draw();
