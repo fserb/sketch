@@ -24,8 +24,11 @@ for f in $SOURCE; do
     lime build html5
     if [ $? == 0 ]; then
       cp bin/html5/bin/index.html "$TARGET/$N/"
-      uglifyjs bin/html5/bin/$N.js -c -m > "$TARGET/$N/$N.js" 2>/dev/null
-      cp bin/html5/bin/soundjs.min.js "$TARGET/$N/"
+      # uglifyjs bin/html5/bin/$N.js -c -m > "$TARGET/$N/$N.js" 2>/dev/null
+      cp bin/html5/bin/$N.js "$TARGET/$N/$N.js"
+      mkdir -p "$TARGET/$N/lib"
+      # cp bin/html5/bin/soundjs.min.js "$TARGET/$N/"
+      cp bin/html5/bin/lib/soundjs.min.js "$TARGET/$N/lib/"
     fi
   else
     echo "$N: skipped."
@@ -34,4 +37,3 @@ done
 
 rm -f project.xml
 mv .tmp.xml project.xml
-
