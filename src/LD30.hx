@@ -83,8 +83,6 @@ class LD30 extends Micro {
   }
 
   override public function update() {
-    if (Game.key.b1_pressed) failGame();
-
     camera.x = 240-player.pos.x;
     camera.y = 240-player.pos.y;
 
@@ -111,7 +109,7 @@ class LD30 extends Micro {
     }
 
     buildPlanets(planets);
-    var timer = 7 + planets*1.8;
+    var timer = 7 + planets*1.7;
 
     if (level == 0) {
       timer = 600;
@@ -136,7 +134,7 @@ class LD30 extends Micro {
   override public function final() {
     new Fader(false, 0.0, true);
     new Score(score, true);
-    new Text().size(4).color(C.black).xy(240, 100).text("game over");
+    new Text().size(4).color(C.black).xy(240, 100).text("time's up!");
     new Text().size(3).color(C.black).xy(240, 200).text("we brought cat videos to");
     new Text().size(5).color(C.black).xy(240, 260).text("" + score);
     new Text().size(3).color(C.black).xy(240, 320).text("planets");
@@ -179,35 +177,55 @@ class Fader extends Entity {
 }
 
 class Intro extends Entity {
+  var fad: Fader;
+  var txts: Array<Entity>;
   override public function begin() {
-    new Fader(true, 8);
+    fad = new Fader(true, 8);
+    txts = new Array<Entity>();
   }
 
   function msg(t: Float, y: Float, msg: String, ?dur:Float = 6) {
     if ((ticks - Game.time) < t && ticks >= t) {
-      new Text().text(msg).xy(240, y).color(C.black).size(2).duration(dur);
+      txts.push(new Text().text(msg).xy(240, y).color(C.black).size(2).duration(dur));
     }
   }
 
   var linked = false;
+  var waittime = 0.0;
   override public function update() {
-    msg(0.1, 90, "It is a period of civil war.", 6.9);
-    msg(1.5, 130, "Our new cat video startup", 5.5);
-    msg(1.5, 150,"wants to expand outside earth.", 5.5);
+    if (Game.key.b1_pressed) {
+      fad.remove();
+      ticks = 100;
+      for (e in txts) {
+        e.remove();
+      }
+    }
 
-    msg(3, 190, "Comcast space internet sucks.", 4);
-    msg(4.5, 230, "We need to pass our own cables.", 2.5);
+    msg(0.1, 90, "It is a period of civil war.", 7.9);
+    msg(1.5, 130, "Our new cat video startup", 6.5);
+    msg(1.5, 150,"wants to expand outside earth.", 6.5);
 
-    msg(7.5, 80, "Go around all planets.", 4);
-    msg(7.5, 110, "The cable can make you slower.", 4);
-    msg(7.5, 140, "Leave the quadrant when you are done.", 4);
-    msg(7.5, 170, "Finish before the time!", 4);
+    msg(4, 190, "Comcast space internet sucks.", 4);
+    msg(5.5, 230, "We need to pass our own cables.", 2.5);
 
-    if (!linked && Game.scene.linked >= Game.scene.planets) {
+    msg(8.5, 80, "Go around all planets.", 4);
+    msg(8.5, 110, "The cable can make you slower.", 4);
+    msg(8.5, 140, "Leave the quadrant when you are done.", 4);
+    msg(8.5, 170, "Finish before the time!", 4);
+
+    if (waittime >= 0.0 && !linked && Game.scene.linked >= Game.scene.planets) {
       linked = true;
-      new Text().text("Now get out of the area!").xy(240, 430).color(C.black).size(2).duration(100);
+      waittime = 2.0;
     } else {
-      linked = false;
+      if (waittime > 0) {
+        waittime -= Game.time;
+        if (waittime <= 0.0) {
+          new Text().text("Now get out of the area!").xy(240, 430).color(C.black).size(2).duration(100);
+          waittime = -1.0;
+        }
+      } else {
+        linked = false;
+      }
     }
   }
 }
