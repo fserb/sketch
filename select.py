@@ -10,7 +10,7 @@ def main(args):
     prj = prj[4:-3]
 
   params = {
-    "name": prj,
+    "name": prj[prj.rfind('/')+1:],
     "lname" : prj.lower(),
     "bgcolor": 0x000000,
     "width": 480,
@@ -61,6 +61,7 @@ PROJECT = """
   <ios devices="universal" />
 
   <source path="src" />
+  <source path="src/motion" />
 
   <haxelib name="vault" />
   <haxelib name="openfl" />
