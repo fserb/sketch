@@ -1,8 +1,5 @@
 //@ ugl.bgcolor = 0xEEEEEE
 
-/*
-*/
-
 import vault.ugl.*;
 import flash.geom.Point;
 import flash.geom.Rectangle;
@@ -17,12 +14,6 @@ class C {
   static public var light = 0xd1d6d8;
 }
 
-class Polarwaves extends Micro {
-  override public function begin() {
-    new Ball();
-  }
-}
-
 typedef Line = {
   var x1: Float;
   var y1: Float;
@@ -32,14 +23,18 @@ typedef Line = {
   var z2: Float;
 }
 
-class Ball extends Entity {
+class Polarwaves extends Motion {
   static inline var tau = 6.28318530717958647692;
   var radius = 0.0;
 
+  static public function main() {
+    new Polarwaves();
+  }
+
   override public function begin() {
     radius = 200;
-    pos.x = pos.y = 0;
-    alignment = TOPLEFT;
+    total = 100;
+    fps = 30.0;
   }
 
   function render(points: Array<Vec2>) {
@@ -81,11 +76,11 @@ class Ball extends Entity {
     }
   }
 
-  var phi = 0.0;
-  var xxx = 0.0;
   override public function update() {
     var points = new Array<Vec2>();
 
+    var phi = -tau/2 + (tau/16)*frac;
+    var xxx = 2*tau*frac;
 
     var divs = 500;
     for (d in 0...8) {
@@ -97,10 +92,6 @@ class Ball extends Entity {
       points.push(Vec2.make(0, ppp + (tau/64)*Math.cos(yyy) ));
       points.push(null);
     }
-
-    var t = Game.time/20.0;
-    phi += tau*t/2.0;
-    xxx += tau*t/0.2;
 
     gfx.clear().size(480, 480);
     render(points);
