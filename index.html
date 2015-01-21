@@ -62,14 +62,14 @@ var gpSend = function() {
 };
 
 var gpInit = function() {
-  var gamepadAvailable = !! navigator.webkitGetGamepads || !! navigator.webkitGamepads || (navigator.userAgent.indexOf('Firefox/') != -1);
+  var gamepadAvailable = !! navigator.getGamepads || !! navigator.webkitGamepads || (navigator.userAgent.indexOf('Firefox/') != -1);
   if (gamepadAvailable) {
     gpTick();
   }
 };
 
 var gpTick = function() {
-  var rawGamepads = (navigator.webkitGetGamepads && navigator.webkitGetGamepads()) || navigator.webkitGamepads;
+  var rawGamepads = (navigator.getGamepads && navigator.getGamepads()) || navigator.webkitGamepads;
   if (!rawGamepads) {
     return window.requestAnimationFrame(gpTick);
   }
