@@ -65,6 +65,8 @@ PROJECT = """
 
   <haxelib name="vault" />
   <haxelib name="openfl" />
+  <haxelib name="hxColorToolkit" />
+  <haxelib name="sfxr" />
   %(haxelib)s
   %(debug)s
 </project>
