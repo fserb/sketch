@@ -30,6 +30,7 @@ class FBP extends Micro {
 
   override public function begin() {
     new Bird();
+    new Coin();
   }
 }
 
@@ -84,6 +85,16 @@ class Bird extends Entity {
 
 class Coin extends Entity {
   override public function begin() {
+    pos.x = pos.y = 50;
+    gfx.fill(0xe9e1e1).circle(10,10,10).fill(null);
+    gfx.line(2, 0xffffff).arc(10,12,10,10,0,Math.PI);
+    gfx.line(2, 0xc8c0c0).arc(10,8,10,10, Math.PI, 2*Math.PI);
+    gfx.line(2, 0x847f7f).circle(10,10,10);
+  }
 
+  override public function update() {
+    if (hitGroup("Bird")) {
+      remove();
+    }
   }
 }
