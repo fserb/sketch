@@ -19,7 +19,7 @@ class C {
   static public var black = 0x010101;
   static public var white = 0xFAFAFA;
   static public var yellow = 0xffc704;
-  static public var purple = 0xc459dc;
+  static public var purple = 0xd541f6;
   static public var cyan = 0x3eb3b9;
 }
 
@@ -40,7 +40,7 @@ class LD32 extends Micro {
     new Minion(C.cyan);
     bg.change(C.purple);
     counter = 3.5;
-    speed = 1.0;
+    speed = 1.5;
   }
 
   public function change(color: UInt) {
@@ -49,7 +49,8 @@ class LD32 extends Micro {
     new Minion(Game.scene.bg.color);
     Game.shake(0.2);
     bg.change(color);
-    speed *= 1.1;
+    speed *= 1.05;
+    trace(speed);
   }
 
   override public function update() {
@@ -69,6 +70,11 @@ class Player extends Entity {
     addHitBox(Circle(16,16,16));
   }
 
+  function kill() {
+    remove();
+    Game.scene.endGame();
+  }
+
   override public function update() {
     var mv = new Vec2(0,0);
     if (hook.action == 0) {
@@ -80,7 +86,7 @@ class Player extends Entity {
       mv.mul(1700);
       acc.add(mv);
       var drag = vel.copy();
-      drag.mul(-10);
+      drag.mul(-5);
       acc.add(drag);
     } else {
       acc.length = vel.length = 0;
@@ -90,6 +96,16 @@ class Player extends Entity {
     if (pos.x >= 480) pos.x -= 480;
     if (pos.y < 0) pos.y += 480;
     if (pos.y >= 480) pos.y -= 480;
+
+    if (hook.action != 3) {
+      if (hitGroup("Bullet")) {
+        kill();
+      }
+      var m: Minion = hitGroup("Minion");
+      if (m != null && m.wait == 0) {
+        kill();
+      }
+    }
 
   }
 }
@@ -151,8 +167,9 @@ class Hook extends Entity {
         target = m;
         m.grabbed = true;
         action = 3;
-        for (b in Game.get("Bullet")) {
-          b.remove();
+        for (e in Game.get("Minion")) {
+          var m:Minion = cast e;
+          m.wait = 1.0;
         }
       }
 
@@ -213,6 +230,7 @@ class Minion extends Entity {
   var bullet: Bullet;
   var bulletAngle = 0.0;
   var bulletDirection = false;
+  public var wait: Float;
   override public function begin() {
     pos.x = 480*Math.random();
     pos.y = 480*Math.random();
@@ -222,9 +240,11 @@ class Minion extends Entity {
     addHitBox(Rect(0, 0, 20, 20));
 
     target = new Vec2(pos.x, pos.y);
+    wait = 2.0;
   }
 
   override public function update() {
+    wait = Math.max(0.0, wait - Game.time);
     if (color == Game.scene.bg.color) {
       this.remove();
       if (bullet != null) bullet.remove();
@@ -239,9 +259,10 @@ class Minion extends Entity {
       if (target.y >= 480) target.y -= 480;
 
       if (color == C.purple) {
-        if (bullet == null || bullet.dead) {
-        bullet = new Bullet(color);
-        bulletDirection = Math.random() < 0.5;
+        if (wait == 0 && (bullet == null || bullet.dead)) {
+          bullet = new Bullet(color);
+          bulletDirection = Math.random() < 0.5;
+          bullet.pos = pos.copy();
         }
 
         target = Game.scene.player.pos.distance(pos);
@@ -256,23 +277,31 @@ class Minion extends Entity {
         dt.clamp(Game.scene.speed*50*Game.time);
         pos.add(dt);
 
-        bulletAngle += (bulletDirection ? 1 : -1)*Math.PI*Game.time*0.1*Game.scene.speed;
-        bullet.pos.x = pos.x + 128*Math.cos(bulletAngle);
-        bullet.pos.y = pos.y + 128*Math.sin(bulletAngle);
-
+        if (bullet != null) {
+          bulletAngle += (bulletDirection ? 1 : -1)*Math.PI*Game.time*0.1*Game.scene.speed;
+          var t = new Vec2(128, 0);
+          t.angle = bulletAngle;
+          t.add(pos);
+          var d = t.distance(bullet.pos);
+          d.clamp(Game.scene.speed*100*Game.time);
+          bullet.pos.add(d);
+        }
       } else if (color == C.cyan) {
         var dt = target.distance(pos);
         if (dt.length < 10) {
           if (bullet != null) bullet.remove();
-          bullet = new Bullet(color);
-
-          target = Game.scene.player.pos.distance(pos);
-          target.length = 200;
-          target.add(pos);
-          bullet.pos = pos.copy();
+          if (wait == 0) {
+            bullet = new Bullet(color);
+          }
+          if (bullet != null)  {
+            target = Game.scene.player.pos.distance(pos);
+            target.length = 200;
+            target.add(pos);
+            bullet.pos = pos.copy();
+          }
         } else {
           var db = target.distance(bullet.pos);
-          if (db.length > 5) {
+          if (db.length > 5 && bullet != null) {
             db.clamp(Game.scene.speed*100*Game.time);
             bullet.pos.add(db);
           } else {
@@ -292,7 +321,7 @@ class Minion extends Entity {
         pos.add(dt);
 
         if (dt.length < 10) {
-          if (bullet == null || bullet.dead) {
+          if (wait == 0 && (bullet == null || bullet.dead)) {
             bullet = new Bullet(color);
             bullet.pos = pos.copy();
             bullet.vel = Game.scene.player.pos.distance(pos);
