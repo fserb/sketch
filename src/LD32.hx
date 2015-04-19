@@ -15,12 +15,12 @@ import vault.Vec2;
 import vault.Ease;
 
 class C {
-  static public var black = 0x010101;
-  static public var white = 0xFAFAFA;
-  static public var yellow = 0xffdc3b;
-  static public var purple = 0xff54b1;
-  static public var cyan = 0xAA00FF;
-  static public var blue = 0x00AAFF;
+  static public var black:UInt = 0x010101;
+  static public var white:UInt = 0xFAFAFA;
+  static public var yellow:UInt = 0xffdc3b;
+  static public var purple:UInt = 0xff54b1;
+  static public var cyan:UInt = 0xAA00FF;
+  static public var blue:UInt = 0x00AAFF;
 }
 
 class LD32 extends Micro {
@@ -38,7 +38,7 @@ class LD32 extends Micro {
     // new Sound("leave").vol(0.1).hit(1259);
     // new Sound("done").vol(0.1).powerup(1274);
 
-    Micro.baseColor = C.black;
+    Micro.baseColor = C.white;
     new LD32("the name of the game is grab", "");
   }  
 
@@ -48,10 +48,10 @@ class LD32 extends Micro {
     score = 0;
     bg = new BG();
     player = new Player(); 
-    new Minion(C.yellow);
-    new Minion(C.cyan);
-    new Minion(C.blue);
-    new Minion(C.purple);
+    new Minion(C.yellow, 10, 10);
+    new Minion(C.cyan, 470, 10);
+    new Minion(C.blue, 470, 470);
+    new Minion(C.purple, 10, 470);
 
     var i = switch(Std.int(4*Math.random())) {
       case 0: C.yellow;
@@ -277,6 +277,10 @@ class Minion extends Entity {
     var p = Game.scene.player.pos;
     pos.x = p.x <= 240 ? 460 : 20;
     pos.y = p.y <= 240 ? 460 : 20;
+    if (args[1]) {
+      pos.x = args[1];
+      pos.y = args[2];
+    }
 
     color = args[0];
     gfx.fill(color).circle(10,10,10).fill(color).rect(0, 10, 20, 10);
@@ -436,7 +440,7 @@ class BG extends Entity {
 
 
 class EndGame extends Entity {
-  static var layer = 1000;
+  static var layer = 999;
   var start: Vec2;
   var stage: Int;
   var p1: Vec2;
@@ -488,9 +492,10 @@ class EndGame extends Entity {
         stage = 4;
       }
     } else if (stage == 4) {
-      new Text().text("GAME OVER").xy(240, 200).size(5).color(C.yellow);
+      new Text().xy(240, 200).size(5).color(C.yellow).text("GAME OVER");
       new Text().text("the name of the game is grab").xy(240, 240).size(2).color(C.yellow);
       new Text().text("your score is " + Game.scene.score).xy(240, 320).size(3).color(C.yellow);
+      stage = 5;
     }
 
     gfx.clear().size(480, 480);
