@@ -4,8 +4,10 @@
 An Unconventional Weapon
 ========================
 
-- wall that you can use as shield
+- score
+- particles
 - sounds
+- better colors
 
 */
 
@@ -33,7 +35,7 @@ class LD32 extends Micro {
   public var speed: Float;
   static public function main() {
     Micro.baseColor = C.black;
-    new LD32("This game is called Grab", "");
+    new LD32("The name of the game is grab", "");
   }  
 
   override public function begin() {
@@ -44,7 +46,15 @@ class LD32 extends Micro {
     new Minion(C.yellow);
     new Minion(C.cyan);
     new Minion(C.blue);
-    bg.change(C.purple);
+    new Minion(C.purple);
+
+    var i = switch(Std.int(4*Math.random())) {
+      case 0: C.yellow;
+      case 1: C.cyan;
+      case 2: C.blue;
+      default: C.purple;
+    };
+    bg.change(i);
   }
 
   public function change(color: UInt) {
@@ -176,9 +186,10 @@ class Hook extends Entity {
         target = m;
         m.grabbed = true;
         action = 3;
+        Game.delay(0.05);
         for (e in Game.get("Minion")) {
           var m:Minion = cast e;
-          m.wait = Game.scene.speed*1.0;
+          m.wait = 1.5/Game.scene.speed;
         }
       }
 
