@@ -4,6 +4,8 @@
 An Unconventional Weapon
 ========================
 
+- wall that you can use as shield
+- sounds
 
 */
 
@@ -21,6 +23,7 @@ class C {
   static public var yellow = 0xffc704;
   static public var purple = 0xd541f6;
   static public var cyan = 0x3eb3b9;
+  static public var blue = 0x5167ef;
 }
 
 class LD32 extends Micro {
@@ -34,13 +37,14 @@ class LD32 extends Micro {
   }  
 
   override public function begin() {
+    speed = 1.5;
+    counter = 3.5;
     bg = new BG();
     player = new Player(); 
     new Minion(C.yellow);
     new Minion(C.cyan);
+    new Minion(C.blue);
     bg.change(C.purple);
-    counter = 3.5;
-    speed = 1.5;
   }
 
   public function change(color: UInt) {
@@ -49,7 +53,7 @@ class LD32 extends Micro {
     new Minion(Game.scene.bg.color);
     Game.shake(0.2);
     bg.change(color);
-    speed *= 1.05;
+    speed *= 1.08;
     trace(speed);
   }
 
@@ -62,7 +66,7 @@ class LD32 extends Micro {
 
 class Player extends Entity {
   static var layer = 100;
-  var hook: Hook;
+  public var hook: Hook;
   override public function begin() {
     pos.x = pos.y = 240;
     gfx.fill(C.black).circle(16, 16, 16);
@@ -92,13 +96,18 @@ class Player extends Entity {
       acc.length = vel.length = 0;
     }
 
-    if (pos.x < 0) pos.x += 480;
-    if (pos.x >= 480) pos.x -= 480;
-    if (pos.y < 0) pos.y += 480;
-    if (pos.y >= 480) pos.y -= 480;
+    // if (pos.x < 0) pos.x += 480;
+    // if (pos.x >= 480) pos.x -= 480;
+    // if (pos.y < 0) pos.y += 480;
+    // if (pos.y >= 480) pos.y -= 480;
+    if (pos.x <= 10) { pos.x = 10; vel.x = Math.abs(vel.x); }
+    if (pos.x >= 470) { pos.x = 470; vel.x = -Math.abs(vel.x); }
+    if (pos.y <= 10) { pos.y = 10; vel.y = Math.abs(vel.y); }
+    if (pos.y >= 470) { pos.y = 470; vel.y = -Math.abs(vel.y); }
 
     if (hook.action != 3) {
-      if (hitGroup("Bullet")) {
+      var b: Bullet = hitGroup("Bullet");
+      if (b != null) {
         kill();
       }
       var m: Minion = hitGroup("Minion");
@@ -169,7 +178,7 @@ class Hook extends Entity {
         action = 3;
         for (e in Game.get("Minion")) {
           var m:Minion = cast e;
-          m.wait = 1.0;
+          m.wait = Game.scene.speed*1.0;
         }
       }
 
@@ -177,14 +186,14 @@ class Hook extends Entity {
         action = 2;
       }
     } else if (action == 2) {
-      arm = Math.max(0, arm - Game.time*900);
+      arm = Math.max(0, arm - Game.time*800);
       draw();
       if (arm == 0) {
         action = 0;
       }
     } else if (action == 3) {
       var oldarm = arm;
-      arm = Math.max(0, arm - Game.time*900);
+      arm = Math.max(0, arm - Game.time*800);
       var v = player.pos.distance(target.pos);
       v.normalize();
       v.length = (arm - oldarm)/2.0;
@@ -207,15 +216,14 @@ class Bullet extends Entity {
   public var color: UInt;
   override public function begin() {
     color = args[0];
-    gfx.fill(color).circle(8, 8, 8);
-    addHitBox(Circle(8,8,8));
+    gfx.fill(color).circle(6,6,6).fill(color).rect(0, 6, 12, 6);
+    gfx.fill(C.white, 0.9).circle(4,5,1).circle(8,5,1);
+    addHitBox(Circle(6,6,6));
   }
 
   override public function update() {
     if (color == C.purple) {
-
     } else if (color == C.cyan) {
-
     } else {
       if (pos.x < 0 || pos.x > 480 || pos.y < 0 || pos.y > 480) remove();
     }
@@ -231,16 +239,24 @@ class Minion extends Entity {
   var bulletAngle = 0.0;
   var bulletDirection = false;
   public var wait: Float;
+  var lastAction = 0;
   override public function begin() {
-    pos.x = 480*Math.random();
-    pos.y = 480*Math.random();
+    var p = Game.scene.player.pos;
+    pos.x = p.x <= 240 ? 460 : 20;
+    pos.y = p.y <= 240 ? 460 : 20;
+
     color = args[0];
     gfx.fill(color).circle(10,10,10).fill(color).rect(0, 10, 20, 10);
     gfx.fill(C.white, 0.9).circle(7,8,2).circle(13,8,2);
     addHitBox(Rect(0, 0, 20, 20));
 
-    target = new Vec2(pos.x, pos.y);
-    wait = 2.0;
+    target = pos.copy();
+    wait = 1.5/Game.scene.speed;
+
+    if (color == C.blue) {
+      target.x = target.y = 240;
+    }    
+
   }
 
   override public function update() {
@@ -295,21 +311,27 @@ class Minion extends Entity {
           }
           if (bullet != null)  {
             target = Game.scene.player.pos.distance(pos);
+            bullet.angle = target.angle + Math.PI/2;
             target.length = 200;
             target.add(pos);
             bullet.pos = pos.copy();
           }
         } else {
-          var db = target.distance(bullet.pos);
-          if (db.length > 5 && bullet != null) {
-            db.clamp(Game.scene.speed*100*Game.time);
-            bullet.pos.add(db);
+          if (bullet != null) {
+            var db = target.distance(bullet.pos);
+            if (db.length > 5) {
+              db.clamp(Game.scene.speed*100*Game.time);
+              bullet.pos.add(db);
+            } else {
+              dt.clamp(Game.scene.speed*50*Game.time);
+              pos.add(dt);
+            }
           } else {
             dt.clamp(Game.scene.speed*50*Game.time);
             pos.add(dt);
           }
         }
-      } else {
+      } else if (color == C.yellow) {
         var c = new Vec2(240, 240);
         c.sub(Game.scene.player.pos);
         c.length = 200;
@@ -325,10 +347,35 @@ class Minion extends Entity {
             bullet = new Bullet(color);
             bullet.pos = pos.copy();
             bullet.vel = Game.scene.player.pos.distance(pos);
+            bullet.angle = bullet.vel.angle + Math.PI/2;
             bullet.vel.length = Game.scene.speed*100;
           }
         }
+      } else if (color == C.blue) {
+        if (lastAction != Game.scene.player.hook.action) {
+          lastAction = Game.scene.player.hook.action;
+
+          if (Game.scene.player.hook.action == 1) {
+            var d = pos.distance(Game.scene.player.pos);
+            d.rotate(Math.PI/2);
+            d.length = Math.random() < 0.5 ? 50 : -50;
+            target = pos.copy();
+            target.add(d);
+            if (bullet == null || bullet.dead) {
+              bullet = new Bullet(color);
+              bullet.pos = pos.copy();
+              bullet.vel = Game.scene.player.pos.distance(pos);
+              bullet.angle = bullet.vel.angle + Math.PI/2;
+              bullet.vel.length = Game.scene.speed*100;
+            }
+          }
+        }
+
+        var dt = target.distance(pos);
+        dt.clamp(Game.scene.speed*50*Game.time);
+        pos.add(dt);
       }
+
       if (pos.y < 0) pos.x += 480;
       if (pos.x >= 480) pos.x -= 480;
       if (pos.y < 0) pos.y += 480;
