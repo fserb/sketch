@@ -7,7 +7,6 @@ An Unconventional Weapon
 - score
 - particles
 - sounds
-- better colors
 
 */
 
@@ -22,10 +21,10 @@ import vault.Ease;
 class C {
   static public var black = 0x010101;
   static public var white = 0xFAFAFA;
-  static public var yellow = 0xffc704;
-  static public var purple = 0xd541f6;
-  static public var cyan = 0x3eb3b9;
-  static public var blue = 0x5167ef;
+  static public var yellow = 0xffdc3b;
+  static public var purple = 0xff54b1;
+  static public var cyan = 0xAA00FF;
+  static public var blue = 0x00AAFF;
 }
 
 class LD32 extends Micro {
