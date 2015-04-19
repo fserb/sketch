@@ -4,7 +4,6 @@
 An Unconventional Weapon
 ========================
 
-- score
 - particles
 - sounds
 
@@ -31,6 +30,7 @@ class LD32 extends Micro {
   var bg: BG;
   var player: Player;
   var counter: Float;
+  var score: Int;
   public var speed: Float;
   static public function main() {
     Micro.baseColor = C.black;
@@ -40,6 +40,7 @@ class LD32 extends Micro {
   override public function begin() {
     speed = 1.5;
     counter = 3.5;
+    score = 0;
     bg = new BG();
     player = new Player(); 
     new Minion(C.yellow);
@@ -63,7 +64,12 @@ class LD32 extends Micro {
     Game.shake(0.2);
     bg.change(color);
     speed *= 1.08;
+    score += 1;
     trace(speed);
+  }
+
+  override public function final() {
+    new EndGame(player.pos);
   }
 
   override public function update() {
@@ -76,6 +82,7 @@ class LD32 extends Micro {
 class Player extends Entity {
   static var layer = 100;
   public var hook: Hook;
+  var stop: Bool = false;
   override public function begin() {
     pos.x = pos.y = 240;
     gfx.fill(C.black).circle(16, 16, 16);
@@ -84,11 +91,16 @@ class Player extends Entity {
   }
 
   function kill() {
-    remove();
+    stop = true;a
+    clearHitBox();
+    vel.x = vel.y = 0;
+    Game.delay(0.1);
+    Game.shake(0.5);
     Game.scene.endGame();
   }
 
   override public function update() {
+    if (stop) return;
     var mv = new Vec2(0,0);
     if (hook.action == 0) {
       if (Game.key.left) mv.x = -1;
@@ -408,5 +420,69 @@ class BG extends Entity {
   }
 
   override public function update() {
+  }
+}
+
+
+class EndGame extends Entity {
+  static var layer = 1000;
+  var start: Vec2;
+  var stage: Int;
+  var p1: Vec2;
+  var p2: Vec2;
+  var p3: Vec2;
+  var p4: Vec2;
+  override public function begin() {
+    pos.x = pos.y = 240;
+    start = args[0];
+    stage = 0;
+    p1 = start.copy(); p1.x -= 10; p1.y -= 10;
+    p2 = start.copy(); p2.x += 10; p2.y -= 10;
+    p3 = start.copy(); p3.x += 10; p3.y += 10;
+    p4 = start.copy(); p4.x -= 10; p4.y += 10;
+  }
+
+  override public function update() {
+    var speed = 5000*Game.time;
+    if (stage == 0) {
+      var target = new Vec2(0, 0);
+      var d = target.distance(p1);
+      d.clamp(speed);
+      p1.add(d);
+      if (d.length <= 0.0) {
+        stage = 1;
+      }
+    } else if (stage == 1) {
+      var target = new Vec2(0, 480);
+      var d = target.distance(p4);
+      d.clamp(speed);
+      p4.add(d);
+      if (d.length <= 0.0) {
+        stage = 2;
+      }
+    } else if (stage == 2) {
+      var target = new Vec2(480, 0);
+      var d = target.distance(p2);
+      d.clamp(speed);
+      p2.add(d);
+      if (d.length <= 0.0) {
+        stage = 3;
+      }
+    } else if (stage == 3) {
+      var target = new Vec2(480, 480);
+      var d = target.distance(p3);
+      d.clamp(speed);
+      p3.add(d);
+      if (d.length <= 0.0) {
+        stage = 4;
+      }
+    } else if (stage == 4) {
+      new Text().text("GAME OVER").xy(240, 200).size(5).color(C.yellow);
+      new Text().text("the name of the game is grab").xy(240, 240).size(2).color(C.yellow);
+      new Text().text("your score is " + Game.scene.score).xy(240, 320).size(3).color(C.yellow);
+    }
+
+    gfx.clear().size(480, 480);
+    gfx.fill(C.black).mt(p1.x, p1.y).lt(p2.x, p2.y).lt(p3.x, p3.y).lt(p4.x, p4.y).fill();
   }
 }
