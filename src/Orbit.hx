@@ -507,7 +507,7 @@ class Chunk extends Entity {
 
   public function draw() {
     var r = (3 + 9*health/5.0)/2.0;
-    gfx.clear().fill(vault.Utils.colorLerp(C.color, C.black, health/5.0))
+    gfx.clear().fill(Color.lerp(C.color, C.black, health/5.0))
       .arc(240, 240, radius - r, radius + r, arc_begin + Math.PI/128, arc_end - Math.PI/128).fill();
     clearHitBox();
     addHitBox(arcHitBox(radius - r, radius + r, arc_begin, arc_end));
@@ -543,7 +543,7 @@ class Chunk extends Entity {
           remove();
           var ang = b.angle - Math.PI/2;
           var diff = (arc_end - arc_begin);
-          new Particle().color(vault.Utils.colorLerp(C.color, C.black, 1.0/5.0))
+          new Particle().color(Color.lerp(C.color, C.black, 1.0/5.0))
             .xy(240 + (-radius)*Math.cos(ang), 240 + (-radius)*Math.sin(ang))
             .size(6)
             .count(diff*100/(2*Math.PI))
