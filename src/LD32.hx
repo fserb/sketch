@@ -4,9 +4,6 @@
 An Unconventional Weapon
 ========================
 
-- particles
-- sounds
-
 */
 
 import vault.ugl.*;
@@ -33,8 +30,16 @@ class LD32 extends Micro {
   var score: Int;
   public var speed: Float;
   static public function main() {
+    new Sound("hook").vol(0.1).laser(1249);
+    new Sound("grab").hit(1249);
+    new Sound("hit").explosion(1238);
+
+    // new Sound("connect").vol(0.1).powerup(1246);
+    // new Sound("leave").vol(0.1).hit(1259);
+    // new Sound("done").vol(0.1).powerup(1274);
+
     Micro.baseColor = C.black;
-    new LD32("The name of the game is grab", "");
+    new LD32("the name of the game is grab", "");
   }  
 
   override public function begin() {
@@ -91,10 +96,11 @@ class Player extends Entity {
   }
 
   function kill() {
-    stop = true;a
+    stop = true;
+    new Sound("hit").play();
     clearHitBox();
     vel.x = vel.y = 0;
-    Game.delay(0.1);
+    Game.delay(0.2);
     Game.shake(0.5);
     Game.scene.endGame();
   }
@@ -130,10 +136,12 @@ class Player extends Entity {
       var b: Bullet = hitGroup("Bullet");
       if (b != null) {
         kill();
+        return;
       }
       var m: Minion = hitGroup("Minion");
       if (m != null && m.wait == 0) {
         kill();
+        return;
       }
     }
 
@@ -185,6 +193,7 @@ class Hook extends Entity {
       m.sub(player.pos);
       angle = m.angle + Math.PI/2;
       if (Game.mouse.button_pressed) {
+        new Sound("hook").play();
         action = 1;
       }
     }
@@ -194,6 +203,7 @@ class Hook extends Entity {
 
       var m: Minion = hitGroup("Minion");
       if (m != null) {
+        new Sound("grab").play();
         target = m;
         m.grabbed = true;
         action = 3;
