@@ -87,7 +87,7 @@ class LD32 extends Micro {
 class Player extends Entity {
   static var layer = 100;
   public var hook: Hook;
-  var stop: Bool = false;
+  public var stop: Bool = false;
   override public function begin() {
     pos.x = pos.y = 240;
     gfx.fill(C.black).circle(16, 16, 16);
@@ -188,6 +188,7 @@ class Hook extends Entity {
   }
 
   override public function update() {
+    if (player.stop) return;
     if (action == 0) {
       var m = new Vec2(Game.mouse.x, Game.mouse.y);
       m.sub(player.pos);
