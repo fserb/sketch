@@ -70,7 +70,6 @@ class LD32 extends Micro {
     bg.change(color);
     speed *= 1.08;
     score += 1;
-    trace(speed);
   }
 
   override public function final() {
