@@ -40,14 +40,14 @@ class LD32 extends Micro {
 
     Micro.baseColor = C.white;
     new LD32("the name of the game is grab", "");
-  }  
+  }
 
   override public function begin() {
     speed = 1.5;
     counter = 3.5;
     score = 0;
     bg = new BG();
-    player = new Player(); 
+    player = new Player();
     new Minion(C.yellow, 10, 10);
     new Minion(C.cyan, 470, 10);
     new Minion(C.blue, 470, 470);
@@ -68,7 +68,7 @@ class LD32 extends Micro {
     new Minion(Game.scene.bg.color);
     Game.shake(0.2);
     bg.change(color);
-    speed *= 1.08;
+    speed *= 1.06;
     score += 1;
   }
 
@@ -291,7 +291,7 @@ class Minion extends Entity {
 
     if (color == C.blue) {
       target.x = target.y = 240;
-    }    
+    }
 
   }
 
