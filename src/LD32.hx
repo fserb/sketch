@@ -70,9 +70,11 @@ class LD32 extends Micro {
     bg.change(color);
     speed *= 1.06;
     score += 1;
+    new Score(score, false);
   }
 
   override public function final() {
+    new Score(score, true);
     new EndGame(player.pos);
   }
 
