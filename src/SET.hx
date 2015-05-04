@@ -22,6 +22,10 @@ class C {
 }
 
 class SET extends Micro {
+  var cursor: Cursor;
+  public var cards: Array<Card>;
+  var deck: Array<Int>;
+  public var mark: Array<Mark>;
   static public function main() {
     Micro.baseColor = C.black;
     new SET("SET", "");
@@ -29,14 +33,146 @@ class SET extends Micro {
 
   override public function begin() {
     var a = 8;
-    new Card(80, 240, 0 + 0);
-    new Card(240, 240, 1 + 4 + 64 + 16);
-    new Card(400, 240, 2 + 8 + 128 + 32);
+
+    cursor = new Cursor();
+    cards = new Array<Card>();
+    mark = new Array<Mark>();
+
+    deck = new Array<Int>();
+    for (c in 0...3) {
+      for (t in 0...3) {
+        for (f in 0...3) {
+          for (n in 0...3) {
+            deck.push(n + (f << 2) + (t << 4) + (c << 6));
+          }
+        }
+      }
+    }
+
+    for (i in 0...12) {
+      var c = new Card(X(i), Y(i), pick());
+      cards.push(c);
+    }
+  }
+
+  inline public function X(i: Int) {
+    return 20 + 55 + 110*(i % 4);
+  }
+
+  inline public function Y(i: Int) {
+    return 20 + 55 + 110*Std.int(i / 4);
+  }
+
+  function pick(): Int {
+    var i = Std.int(Math.random()*deck.length);
+    var r = deck[i];
+    deck.remove(r);
+    return r;
+  }
+
+  function check(): Bool {
+    var types = [0,0,0];
+    var colors = [0,0,0];
+    var numbers = [0,0,0];
+    var fills = [0,0,0];
+    for (i in 0...3) {
+      var card = cards[mark[i].selected].card;
+      numbers[i] = card & 3;
+      types[i] = (card >> 2) & 3;
+      colors[i] = (card >> 4) & 3;
+      fills[i] = (card >> 6) & 3;
+    }
+
+    var m1 = false;
+    var m2 = false;
+    var m3 = false;
+    var m4 = false;
+    if (numbers[0] == numbers[1] && numbers[0] == numbers[2]) m1 = true;
+    if (numbers[0] != numbers[1] && numbers[0] != numbers[2] && numbers[1] != numbers[2]) m1 = true;
+    if (colors[0] == colors[1] && colors[0] == colors[2]) m2 = true;
+    if (colors[0] != colors[1] && colors[0] != colors[2] && colors[1] != colors[2]) m2 = true;
+    if (types[0] == types[1] && types[0] == types[2]) m3 = true;
+    if (types[0] != types[1] && types[0] != types[2] && types[1] != types[2]) m3 = true;
+    if (fills[0] == fills[1] && fills[0] == fills[2]) m4 = true;
+    if (fills[0] != fills[1] && fills[0] != fills[2] && fills[1] != fills[2]) m4 = true;
+    trace(m1,m2,m3,m4);
+    return m1 && m2 && m3 && m4;
+  }
+
+  override public function update() {
+    if (Game.key.b1_pressed) {
+      var sel = cursor.selected;
+      var create = true;
+
+      for (m in mark) {
+        if (m.selected == sel) {
+          mark.remove(m);
+          m.remove();
+          create = false;
+          break;
+        }
+      }
+      if (create) {
+        var m = new Mark(X(sel), Y(sel), sel);
+        if (mark.length >= 3) {
+          var old = mark.shift();
+          old.remove();
+        }
+        mark.push(m);
+        if (mark.length == 3) {
+          if (check()) {
+            for (i in 0...3) {
+              var p = mark[i].selected;
+              cards[p].remove();
+              cards[p] = new Card(X(p), Y(p), pick());
+              mark[i].remove();
+            }
+            mark = [];
+          }
+        }
+      }
+    }
+  }
+}
+
+class Mark extends Entity {
+  static public var layer = 10;
+  public var selected: Int;
+  override public function begin() {
+    pos.x = args[0];
+    pos.y = args[1];
+    selected = args[2];
+    gfx.line(4, C.COLORS[3]).size(110, 110).rect(4, 4, 102, 102);
+  }
+}
+
+class Cursor extends Entity {
+  static public var layer = 11;
+
+  public var selected = 4;
+  override public function begin() {
+    gfx.line(4, C.COLORS[4]).rect(0, 0, 110, 110);
+  }
+
+  override public function update() {
+    var x = selected % 4;
+    var y = Std.int(selected/4);
+    // update keyboard with selected
+    if (Game.key.left_pressed) x = (4 + x - 1) % 4;
+    if (Game.key.right_pressed) x = (x + 1) % 4;
+    if (Game.key.up_pressed) y = (3 + y - 1) % 3;
+    if (Game.key.down_pressed) y = (y + 1) % 3;
+    selected = x + y*4;
+    // update mouse move with selected
+
+    // update position
+    pos.x = 20 + 55 + 110*(selected % 4);
+    pos.y = 20 + 55 + 110*Std.int(selected / 4);
   }
 }
 
 class Card extends Entity {
-  var card: Int;
+  public var card: Int;
   override public function begin() {
     pos.x = args[0];
     pos.y = args[1];
@@ -45,7 +181,7 @@ class Card extends Entity {
   }
 
   function drawType(y, col, fill, type) {
-    var x = 60;
+    var x = 55;
     var color = C.COLORS[col];
     if (type == 0) {
       if (fill == 0) gfx.line(2, color).rect(x-10,y-10,20,20).line(null);
@@ -80,20 +216,18 @@ class Card extends Entity {
     var type = (card >> 2) & 3;
     var color = (card >> 4) & 3;
     var fill = (card >> 6) & 3;
-    trace(card,count,type,color, fill);
-
-    gfx.line(2, 0xCCCCCC).rect(0, 0, 120, 120);
+    gfx.size(110, 110);
 
     switch(count) {
       case 0:
-        drawType(60, color, fill, type);
+        drawType(55, color, fill, type);
       case 1:
-        drawType(45, color, fill, type);
-        drawType(75, color, fill, type);
+        drawType(40, color, fill, type);
+        drawType(70, color, fill, type);
       case 2:
-        drawType(30, color, fill, type);
-        drawType(60, color, fill, type);
-        drawType(90, color, fill, type);
+        drawType(25, color, fill, type);
+        drawType(55, color, fill, type);
+        drawType(85, color, fill, type);
       default:
     }
   }
