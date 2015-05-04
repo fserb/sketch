@@ -49,7 +49,7 @@ class SET extends Micro {
       }
     }
 
-    for (i in 0...12) {
+    for (i in 0...16) {
       var c = new Card(X(i), Y(i), pick());
       cards.push(c);
     }
@@ -114,10 +114,6 @@ class SET extends Micro {
       }
       if (create) {
         var m = new Mark(X(sel), Y(sel), sel);
-        if (mark.length >= 3) {
-          var old = mark.shift();
-          old.remove();
-        }
         mark.push(m);
         if (mark.length == 3) {
           if (check()) {
@@ -125,6 +121,11 @@ class SET extends Micro {
               var p = mark[i].selected;
               cards[p].remove();
               cards[p] = new Card(X(p), Y(p), pick());
+              mark[i].remove();
+            }
+            mark = [];
+          } else {
+            for (i in 0...3) {
               mark[i].remove();
             }
             mark = [];
@@ -142,7 +143,7 @@ class Mark extends Entity {
     pos.x = args[0];
     pos.y = args[1];
     selected = args[2];
-    gfx.line(4, C.COLORS[3]).size(110, 110).rect(4, 4, 102, 102);
+    gfx.line(4, C.COLORS[3]).size(100, 100).rect(4, 4, 92, 92);
   }
 }
 
@@ -151,7 +152,7 @@ class Cursor extends Entity {
 
   public var selected = 4;
   override public function begin() {
-    gfx.line(4, C.COLORS[4]).rect(0, 0, 110, 110);
+    gfx.line(4, C.COLORS[4]).rect(0, 0, 100, 100);
   }
 
   override public function update() {
@@ -160,8 +161,8 @@ class Cursor extends Entity {
     // update keyboard with selected
     if (Game.key.left_pressed) x = (4 + x - 1) % 4;
     if (Game.key.right_pressed) x = (x + 1) % 4;
-    if (Game.key.up_pressed) y = (3 + y - 1) % 3;
-    if (Game.key.down_pressed) y = (y + 1) % 3;
+    if (Game.key.up_pressed) y = (4 + y - 1) % 4;
+    if (Game.key.down_pressed) y = (y + 1) % 4;
     selected = x + y*4;
     // update mouse move with selected
 
@@ -180,8 +181,7 @@ class Card extends Entity {
     draw();
   }
 
-  function drawType(y, col, fill, type) {
-    var x = 55;
+  function drawType(x: Float, y: Float, col, fill, type) {
     var color = C.COLORS[col];
     if (type == 0) {
       if (fill == 0) gfx.line(2, color).rect(x-10,y-10,20,20).line(null);
@@ -216,18 +216,19 @@ class Card extends Entity {
     var type = (card >> 2) & 3;
     var color = (card >> 4) & 3;
     var fill = (card >> 6) & 3;
-    gfx.size(110, 110);
+    gfx.size(100, 100);
 
     switch(count) {
       case 0:
-        drawType(55, color, fill, type);
+        drawType(50, 50, color, fill, type);
       case 1:
-        drawType(40, color, fill, type);
-        drawType(70, color, fill, type);
+        drawType(35, 50, color, fill, type);
+        drawType(65, 50, color, fill, type);
       case 2:
-        drawType(25, color, fill, type);
-        drawType(55, color, fill, type);
-        drawType(85, color, fill, type);
+        for (i in 0...3) {
+          var a = 3*Math.PI/2 + i*2*Math.PI/3;
+          drawType(50 + 18*Math.cos(a), 50 + 18*Math.sin(a), color, fill, type);
+        }
       default:
     }
   }
