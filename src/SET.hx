@@ -26,6 +26,7 @@ class SET extends Micro {
   public var cards: Array<Card>;
   var deck: Array<Int>;
   public var mark: Array<Mark>;
+  var grave: Array<Card>;
   static public function main() {
     Micro.baseColor = C.black;
     new SET("SET", "");
@@ -37,6 +38,7 @@ class SET extends Micro {
     cursor = new Cursor();
     cards = new Array<Card>();
     mark = new Array<Mark>();
+    grave = [null, null, null];
 
     deck = new Array<Int>();
     for (c in 0...3) {
@@ -118,8 +120,13 @@ class SET extends Micro {
         if (mark.length == 3) {
           if (check()) {
             for (i in 0...3) {
+              if (grave[i] != null) grave[i].remove();
               var p = mark[i].selected;
-              cards[p].remove();
+              grave[i] = cards[p];
+              grave[i].sprite.scaleX = grave[i].sprite.scaleY = 0.3;
+              grave[i].pos.y = 470;
+              grave[i].pos.x = 470 - 25*i;
+
               cards[p] = new Card(X(p), Y(p), pick());
               mark[i].remove();
             }
