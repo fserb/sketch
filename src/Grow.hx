@@ -23,59 +23,40 @@ class Grow extends Micro {
 }
 
 class Path extends Entity {
-  var points: Array<Vec2>;
-  var added: Array<Vec2>;
+  var zoom: Float = 1.0;
+  var points: Array<Float>;
+  var added: Array<Float>;
   var addedStart: Float;
   var length: Float;
   override public function begin() {
     pos.x = pos.y = 0;
     alignment = TOPLEFT;
-    points = new Array<Vec2>();
-    added = new Array<Vec2>();
+    points = new Array<Float>();
+    added = new Array<Float>();
     addedStart = -1;
-    for (i in 0...10) {
-      points.push(new Vec2(240 + 100*Math.cos(2*Math.PI*i/10),
-                           240 + 100*Math.sin(2*Math.PI*i/10)));
+    for (i in 0...100) {
+      points.push(100);
+      added.push(100);
     }
-    calcLength();
   }
 
-  function calcLength() {
-    length = 0.0;
-    var lastp = points[points.length-1];
-    for (p in points) {
-      length += p.distance(lastp).length;
-      lastp = p;
-    }
-    trace(length);
+  inline function getidx(a: Float): Float {
+    var ang = a%(2*Math.PI);
+    return points.length*ang/(2*Math.PI);
   }
 
-  public function getidx(t: Float): Float {
-    var l = 0.0;
-    t = t % length;
-    var lastp = points[0];
-    for (i in 0...points.length) {
-      var ni = (i+1)%points.length;
-      var sl = points[ni].distance(lastp).length;
-      l += sl;
-      lastp = points[ni];
-      if (l > t) {
-        l -= sl;
-        var d = i + (t-l)/sl;
-        return d;
-      }
-    }
-    return -1;
-  }
-
-  public function get(t: Float): Vec2 {
-    var i = getidx(t);
-    var si = Std.int(i);
-    var p = points[si].copy();
-    var p2 = points[(si+1)%points.length].distance(p);
-    p2.mul(i-si);
-    p.add(p2);
-    return p;
+  function get(a: Float): Vec2 {
+    var idx = getidx(a);
+    var b = Std.int(idx);
+    var p0 = new Vec2(240 + zoom*points[b]*Math.cos(2*Math.PI*b/points.length),
+                      240 + zoom*points[b]*Math.sin(2*Math.PI*b/points.length));
+    var e = (b + 1) % points.length;
+    var p1 = new Vec2(240 + zoom*points[e]*Math.cos(2*Math.PI*e/points.length),
+                      240 + zoom*points[e]*Math.sin(2*Math.PI*e/points.length));
+    p1.sub(p0);
+    p1.mul(idx - b);
+    p0.add(p1);
+    return p0;
   }
 
   public function normal(t: Float): Vec2 {
@@ -86,93 +67,72 @@ class Path extends Entity {
     return p;
   }
 
-  public function addPath(t: Float, p: Vec2) {
-    if (addedStart < 0) {
-      addedStart = t;
-    }
-    added.push(p);
+  public function addPath(a: Float, h: Float) {
+    var idx = getidx(a);
+    var a = Std.int(idx);
+    added[a] = points[a] + h;
+    var b = (a+1)%points.length;
+    added[b] = points[b] + h;
   }
 
-  public function closePath(t: Float): Float {
-    if (added.length == 0) return t;
-    var start = getidx(addedStart);
-    var end = getidx(t);
-    var hbp = get(addedStart).copy();
-    var hep = get(t).copy();
-
-    // add half begin point
-    points.insert(Std.int(start+1), hbp);
-
-    // remove middle points
-    var hole = Std.int(end)-Std.int(start);
-    trace(start, end, hole);
-    if (hole >= 0) {
-      points.insert(Std.int(end+2), hep);
-      points.splice(Std.int(start+2), hole);
-    } else {
-      points.insert(Std.int(end+1), hep);
-      points.splice(Std.int(start+3), points.length - Std.int(start+2));
-      points.splice(0, Std.int(end)+1);
-      start = -2;
-    }
-
-    // add new path
+  public function closePath(t: Float) {
     for (i in 0...added.length) {
-      points.insert(Std.int(start+2) + i, added[i]);
+      points[i] = added[i];
     }
-
-
-    added = [];
-    addedStart = -1;
-
-    calcLength();
-    return t;
   }
 
   public function draw() {
     gfx.clear();
-    if (added.length > 0) {
-      var a = get(addedStart);
-      gfx.line(2, 0x888888).mt(a.x, a.y);
-      for (p in added) {
-        gfx.lt(p.x, p.y);
+    gfx.line(2, 0x888888);
+    var last = -1;
+    for (i in 0...added.length) {
+      if (added[i] != points[i]) {
+        var x = 240 + zoom*added[i]*Math.cos(2*Math.PI*i/added.length);
+        var y = 240 + zoom*added[i]*Math.sin(2*Math.PI*i/added.length);
+        if (last == -1) {
+          gfx.mt(x, y);
+        }
+        gfx.lt(x, y);
+        last = i;
+      } else if (last >= 0) {
+        gfx.mt(240 + zoom*added[last]*Math.cos(2*Math.PI*last/added.length),
+               240 + zoom*added[last]*Math.sin(2*Math.PI*last/added.length));
+        last = -1;
+
       }
-      gfx.mt(added[added.length-1].x, added[added.length-1].y);
+    }
+    if (added[0] != points[0]) {
+      gfx.lt(240 + zoom*added[0], 240);
+      last = 0;
+    }
+    if (last >= 0) {
+        gfx.mt(240 + zoom*added[last]*Math.cos(2*Math.PI*last/added.length),
+               240 + zoom*added[last]*Math.sin(2*Math.PI*last/added.length));
     }
 
-    gfx.line(2, 0xFFFFFF).mt(points[0].x, points[0].y);
-    for (p in points) {
-      gfx.lt(p.x, p.y);
+    gfx.line(2, 0xFFFFFF).mt(240 + zoom*points[0], 240);
+    for (i in 0...points.length) {
+      var h = points[i];
+      gfx.lt(240 + zoom*h*Math.cos(2*Math.PI*i/points.length),
+             240 + zoom*h*Math.sin(2*Math.PI*i/points.length));
     }
-    gfx.lt(points[0].x, points[0].y);
-    gfx.fill(0xFFFFFF);
-    for (p in points) {
-      gfx.circle(p.x, p.y, 2);
-    }
+    gfx.lt(240 + zoom*points[0], 240);
   }
 
   override public function update() {
     draw();
+    var mv = 0.0;
+    for (p in points) {
+      if (p > mv) mv = p;
+    }
+    for (p in added) {
+      if (p > mv) mv = p;
+    }
+    var targetzoom = Math.min(1.0, 175.0/mv);
+    var dz = targetzoom - zoom;
+    trace(zoom, targetzoom);
+    zoom += dz*Game.time;
 
-    if (Game.key.up_pressed) {
-      var p1 = points[0];
-      var p2 = points[1];
-      var pn = p2.distance(p1);
-      pn.rotate(-Math.PI/2);
-      pn.mul(10);
-      var px = p1.copy();
-      px.add(p2);
-      px.mul(0.5);
-      px.add(pn);
-      points.insert(1, p1);
-      points.insert(2, px);
-      points.insert(3, p2);
-    }
-    if (Game.key.down_pressed) {
-      points.splice(1, 1);
-      points.splice(1, 1);
-      points.splice(1, 1);
-    }
   }
 }
 
@@ -182,7 +142,7 @@ class Cursor extends Entity {
   var hv: Float;
   override public function begin() {
     gfx.fill(0xFFFFFF).circle(8, 8, 8);
-    t = 500.0;
+    t = 0.0;
     h = 0.0;
     hv = 0.0;
   }
@@ -212,7 +172,6 @@ class Cursor extends Entity {
     h += Game.time*(hv + ha/2.0);
     hv += ha;
 
-    // trace(Std.int(h), Std.int(hv), Std.int(ha));
     if (h < 0) h =0.0;
 
     var n2 = n.copy();
@@ -224,10 +183,10 @@ class Cursor extends Entity {
     gfx.fill().line(2, 0x000000).mt(8,8).lt(8 + 8*n.x, 8 + 8*n.y);
 
     if (h > 0) {
-      Game.one("Path").addPath(t, pos.copy());
+      Game.one("Path").addPath(t, h);
     } else {
-      t = Game.one("Path").closePath(t);
+      Game.one("Path").closePath(t);
     }
-    t += Game.time*50;
+    t += Game.time*0.75;
   }
 }
