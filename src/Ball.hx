@@ -1,9 +1,11 @@
-//@ ugl.bgcolor = 0xFAFAFA
+//@ ugl.bgcolor = 0x303030
 
 import vault.ugl.*;
 import vault.EMath;
 import vault.Vec2;
 import vault.Grid;
+import vault.Act;
+import vault.Ease;
 
 class C {
   static public var black:UInt = 0x606060;
@@ -15,6 +17,9 @@ class C {
 
 class Ball extends Micro {
   public var grid: Grid;
+  var wall: Wall;
+  var player: Player;
+  var compass: Compass;
   static public function main() {
     new Ball("Ball", "");
   }
@@ -50,21 +55,73 @@ class Ball extends Micro {
 000000000000000000000000
 ");
 
-    new Player(grid);
-    new Wall(grid);
+    player = new Player(grid);
+    wall = new Wall(grid);
+    compass = new Compass();
   }
 
+  function rotate(sz: Int = 1) {
+
+    var cangle = compass.angle;
+    var initialangle: Float;
+
+    Act.obj(this)
+    .tween(function(z) {
+      compass.angle = cangle - sz*Math.PI/2*z;
+    }, 0.4, Ease.cubicIn).delay(0.5).then(function() {
+      player.locked = true;
+      initialangle = player.pos.distance(new Vec2(240,240)).angle;
+      cangle = compass.angle;
+    })
+    .tween(function(z) {
+      wall.angle = sz*Math.PI/2*z;
+      compass.angle = cangle + sz*Math.PI/2*z;
+      var d = player.pos.distance(new Vec2(240, 240));
+      d.angle = initialangle + sz*Math.PI/2*z;
+      player.pos.x = 240 + d.x;
+      player.pos.y = 240 + d.y;
+
+    }, Math.abs(0.6*sz), Ease.cubicIn).then(function() {
+      trace(sz, (4 + sz)%4);
+      for (i in 0...(4 + sz)%4) {
+        var oldmap = grid.map;
+        grid.map = [];
+        for (x in 0...grid.width) {
+          var c = new Array<Tile>();
+          for (y in 0...grid.height) {
+            c.push(oldmap[y][grid.width-x-1]);
+          }
+          grid.map.push(c);
+        }
+      }
+      wall.draw();
+      wall.angle = 0;
+      player.locked = false;
+      grid.get(player).pos = player.pos.copy();
+    });
+  }
+
+  var t = 10.0;
   override public function update() {
     grid.debug();
+
+    t -= Game.time;
+    if (t <= 0.0 || Game.key.b1_pressed) {
+      t = 10.0;
+      rotate([1, -1, 2][Std.int(3*Math.random())]);
+    }
   }
 }
 
 class Player extends Entity {
+  static var layer = 20;
+
   var state = 0;
   var dt = 0.0;
   var grid: Grid;
   var facingleft: Bool = true;
   var bfall = 0.0;
+  public var locked = false;
 
   override public function begin() {
     grid = args[0];
@@ -90,6 +147,10 @@ class Player extends Entity {
   }
 
   override public function update() {
+    if (locked) {
+      vel.x = vel.y = 0;
+      return;
+    }
     var touch = grid.get(this).touch;
     var collide = grid.get(this).collide;
     acc.x = -vel.x/Game.time;
@@ -134,6 +195,7 @@ class Player extends Entity {
   }
 
   override public function postUpdate() {
+    if (locked) return;
     pos = grid.update(this, pos);
     draw();
     var r = grid.get(this).rect;
@@ -150,10 +212,17 @@ class Player extends Entity {
 }
 
 class Wall extends Entity {
+  var grid: Grid;
+  static var layer = 10;
   override public function begin() {
-    var grid: Grid = args[0];
+    grid = args[0];
     alignment = TOPLEFT;
+    draw();
+  }
 
+  public function draw() {
+    gfx.clear();
+    gfx.fill(C.white).rect(0, 0, grid.width*grid.tilesize, grid.height*grid.tilesize);
     for (x in 0...grid.width) {
       for (y in 0...grid.height) {
         if (grid.map[x][y] == null) continue;
@@ -167,5 +236,15 @@ class Wall extends Entity {
         }
       }
     }
+  }
+}
+
+class Compass extends Entity {
+  static var layer = 11;
+  override public function begin() {
+    pos.x = pos.y = 240;
+    gfx.line(2, 0x888888).mt(6, 0).lt(6, 12);
+    gfx.mt(6,0).lt(0, 6);
+    gfx.mt(6,0).lt(12, 6);
   }
 }
