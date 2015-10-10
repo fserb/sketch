@@ -2,7 +2,7 @@
 
 import vault.ugl.*;
 import vault.EMath;
-import vault.Vec2;
+import vault.geom.Vec2;
 
 class Asteroid extends Micro {
   public var score = 0.0;

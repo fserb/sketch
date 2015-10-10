@@ -6,7 +6,7 @@
 
 import vault.ugl.*;
 import vault.EMath;
-import vault.Vec2;
+import vault.geom.Vec2;
 
 typedef C = Color.ColorsArne;
 

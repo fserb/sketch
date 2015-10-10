@@ -3,7 +3,7 @@
 import vault.ugl.*;
 import flash.geom.Rectangle;
 import vault.EMath;
-import vault.Vec2;
+import vault.geom.Vec2;
 import vault.Ease;
 
 class Gather extends Micro {

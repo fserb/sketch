@@ -3,7 +3,7 @@
 
 import vault.Rand;
 import vault.ugl.*;
-import vault.Vec2;
+import vault.geom.Vec2;
 
 class Avoid extends Micro {
   static public function main() {
