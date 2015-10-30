@@ -63,6 +63,8 @@ PROJECT = """
   <source path="src" />
   <source path="src/motion" />
 
+  <assets path="assets" rename="" />
+
   <haxelib name="vault" />
   <haxelib name="openfl" />
   <haxelib name="hxColorToolkit" />

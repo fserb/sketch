@@ -2,10 +2,11 @@
 
 import vault.ugl.*;
 import vault.EMath;
-import vault.Vec2;
+import vault.geom.Vec2;
 import vault.Grid;
 import vault.Act;
 import vault.Ease;
+import vault.Sight;
 
 class C {
   static public var black:UInt = 0x606060;
@@ -18,6 +19,7 @@ class C {
 class Wall extends Micro {
   public var level: Level;
   var player: Player;
+  var sighter: Sighter;
   static public function main() {
     new Wall("Wall", "");
   }
@@ -25,25 +27,36 @@ class Wall extends Micro {
   override public function begin() {
     level = new Level();
     player = new Player(level.grid);
+    sighter = new Sighter(level.grid, player, level);
   }
 
   override public function update() {
     var cam = player.pos.copy();
+
     cam.x -= 240;
     cam.y -= 240;
-
-
-    var lev = level.pos.distance(cam);
-    if (lev.x > 0) { cam.x += lev.x; }
-    if (lev.y > 0) { cam.y += lev.y; }
-    if (24*40 + lev.x < 480) { cam.x -= 480 - (24*40 + lev.x); }
-    if (24*40 + lev.y < 480) { cam.y -= 480 - (24*40 + lev.y); }
-
-    if (player.vel.y != 0) cam.y = 0;
     cam.clamp(200*Game.time);
 
-    player.pos.sub(cam);
+    var l = level.pos.distance(cam);
+    if (l.x > 0) {
+      cam.x += l.x;
+    }
+    if (l.y > 0) {
+      cam.y += l.y;
+    }
+    if (l.y < 0) {
+      cam.y += l.y;
+    }
+    // if (l.x <= -(48*20-480)) {
+    //   cam.x <= -(48*20-480)-l.x;
+    // }
+    // if (l.y < 0) {
+    //   cam.y -= l.y;
+    // }
+
     level.pos.sub(cam);
+    player.pos.sub(cam);
+    sighter.pos.sub(cam);
   }
 }
 
@@ -52,38 +65,38 @@ class Level extends Entity {
   static var layer = 10;
   override public function begin() {
     alignment = TOPLEFT;
-    pos.x = -480;
-    pos.y = -480;
+    pos.x = -240;
+    pos.y = -240;
 
     var s = new flash.display.Sprite();
-    grid = new Grid(24, 24, 40, s);
+    grid = new Grid(48, 24, 20, s);
     grid.offset = pos.copy();
     Game.sprite.addChild(s);
-    grid.load([ {block:true, type:1}, {block:false, type:2} ], "
-000000000000000000000000
-0......................0
-0......................0
-0......................0
-000.................0000
-0......................0
-0........0000..........0
-0......................0
-0......................0
-0.....1.............0000
-0......................0
-0..............1.......0
-0......................0
-0....0.0.0.............0
-0......................0
-0.........0000.........0
-0......................0
-00.....................0
-0..............11111...0
-0......................0
-0........000...........0
-0.....000.........0....0
-0.................0....0
-000000000000000000000000
+    grid.load([ {block:true, type:1} ], "
+000000000000000000000000000000000000000000000000
+0..............................................0
+0..............................................0
+0..............................................0
+000.........................................0000
+0..............................................0
+0........0000..................................0
+0..............................................0
+0..............................................0
+0.....0.....................................0000
+0..............................................0
+0..............0...............................0
+0..............................................0
+0....0.0.0.....................................0
+0..............................................0
+0.........0000.................................0
+0..............................................0
+00.............................................0
+0..............00000...........................0
+0..............................................0
+0........000...................................0
+0.....000.........0............................0
+0.................0............................0
+000000000000000000000000000000000000000000000000
 ");
     draw();
   }
@@ -111,11 +124,42 @@ class Level extends Entity {
   }
 }
 
+
+class Sighter extends Entity {
+  static var layer = 19;
+  var grid: Grid;
+  var player: Player;
+  var sight: Sight;
+  var level: Level;
+  override public function begin() {
+    pos.x = pos.y = -240;
+    alignment = TOPLEFT;
+    grid = args[0];
+    player = args[1];
+    level = args[2];
+    sight = grid.getSight();
+  }
+
+
+  override public function update() {
+    gfx.clear();
+
+    var p = player.pos.copy();
+    p.sub(level.pos);
+
+    for (t in sight.castLOS(p)) {
+      gfx.fill(0x1ebed8, 0.2);
+      gfx.mt(t.a.x, t.a.y);
+      gfx.lt(t.b.x, t.b.y);
+      gfx.lt(t.c.x, t.c.y);
+    }
+  }
+}
+
+
 class Player extends Entity {
   static var layer = 20;
 
-  public var state = 0;
-  var dt = 0.0;
   var grid: Grid;
   var facingleft: Bool = true;
   var bfall = 0.0;
@@ -125,61 +169,33 @@ class Player extends Entity {
     grid = args[0];
     pos.x = 0;
     pos.y = 0;
-    grid.add(this, pos, -8.5, -8.5, 17, 19);
+    grid.add(this, pos, -8, -8, 14, 17);
     draw();
     // addHitBox(Rect(0,0,3*5,3*7));
   }
 
   function draw() {
-    var big = vel.y < -150;
-    art.clear().size(3, 7, big ? 10 : 7).obj([C.p1],
+    art.clear().size(3, 7, 7).obj([C.p1],
       (facingleft ? "00000.." : "..00000") +
       (facingleft ? "000000." : ".000000") +
-"
-.0.0.0.
+".0.0.0.
 .00000.
 .00000.
-..000.."
-+ (big ? "..000....000....000.." : "") +
-".00000.");
+..000..
+.00000.");
   }
 
   override public function update() {
-    if (locked) {
-      vel.x = vel.y = 0;
-      return;
-    }
-    var touch = grid.get(this).touch;
-    var collide = grid.get(this).collide;
     acc.x = -vel.x/Game.time;
+    acc.y = -vel.y/Game.time;
 
-    if (touch & 1 == 1) {
-      vel.y = 0;
+    if (Game.key.up) {
+      acc.y += -10000;
+      facingleft = true;
     }
-
-    if (touch & 4 == 4) {
-      vel.y = 0;
-      bfall = 0.1;
-    } else {
-      acc.y = 1000;
-      if (touch == 2 || touch == 8) {
-        if (Game.key.up_pressed) {
-          vel.y = -400;
-          vel.x = vel.x > 0 ? -500 : 500;
-          acc.x = 0;
-        }
-      } else {
-        if (!Game.key.up) {
-          vel.y = Math.max(vel.y, -150);
-        }
-      }
-    }
-
-    bfall = Math.max(0.0, bfall - Game.time);
-    if (touch & 4 == 4 || bfall > 0.0) {
-      if (Game.key.up_pressed) {
-        vel.y = -400;
-      }
+    if (Game.key.down) {
+      acc.y += 10000;
+      facingleft = true;
     }
 
     if (Game.key.left) {
@@ -193,18 +209,7 @@ class Player extends Entity {
   }
 
   override public function postUpdate() {
-    if (locked) return;
     pos = grid.update(this, pos);
     draw();
-    var r = grid.get(this).rect;
-    var bot = pos.y + r.x + r.h - 1;
-    for (x in 0...grid.width) {
-      for (y in 0...grid.height) {
-        if (grid.map[x][y] == null) continue;
-        if (grid.map[x][y].type == 2) {
-          grid.map[x][y].block = (bot <= y*grid.tilesize + grid.offset.y);
-        }
-      }
-    }
   }
 }

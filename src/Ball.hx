@@ -2,10 +2,12 @@
 
 import vault.ugl.*;
 import vault.EMath;
-import vault.Vec2;
+import vault.geom.Vec2;
 import vault.Grid;
 import vault.Act;
 import vault.Ease;
+import vault.Sight;
+import vault.PostProcess;
 
 class C {
   static public var black:UInt = 0x606060;
@@ -20,6 +22,7 @@ class Ball extends Micro {
   var wall: Wall;
   var player: Player;
   var compass: Compass;
+  var sighter: Sighter;
   static public function main() {
     new Ball("Ball", "");
   }
@@ -35,7 +38,7 @@ class Ball extends Micro {
 0......................0
 000.................0000
 0......................0
-0........0000..........0
+0........0000...1......0
 0......................0
 0......................0
 0.....1.............0000
@@ -54,14 +57,13 @@ class Ball extends Micro {
 0.................0....0
 000000000000000000000000
 ");
-
     player = new Player(grid);
+    sighter = new Sighter(grid, player);
     wall = new Wall(grid);
-    compass = new Compass();
+    // compass = new Compass();
   }
 
   function rotate(sz: Int = 1) {
-
     var cangle = compass.angle;
     var initialangle: Float;
 
@@ -101,15 +103,55 @@ class Ball extends Micro {
     });
   }
 
-  var t = 10.0;
   override public function update() {
     grid.debug();
-
-    t -= Game.time;
-    if (t <= 0.0 || Game.key.b1_pressed) {
-      t = 10.0;
+    if (Game.key.b1_pressed) {
       rotate([1, -1, 2][Std.int(3*Math.random())]);
     }
+  }
+}
+
+class Sighter extends Entity {
+  static var layer = 19;
+  var grid: Grid;
+  var player: Player;
+  var sight: Sight;
+  override public function begin() {
+    pos.x = pos.y = 0;
+    alignment = TOPLEFT;
+    grid = args[0];
+    player = args[1];
+    sight = grid.getSight();
+  }
+
+
+  override public function update() {
+    gfx.clear();
+
+    // gfx.line(1, 0x00FF00, 1.0);
+    // for (w in sight.walls) {
+    //   gfx.mt(w.a.x, w.a.y);
+    //   gfx.lt(w.b.x, w.b.y);
+    // }
+    // gfx.line(null);
+
+    for (t in sight.castLOS(player.pos)) {
+      gfx.fill(0x1ebed8, 0.2);
+      gfx.mt(t.a.x, t.a.y);
+      gfx.lt(t.b.x, t.b.y);
+      gfx.lt(t.c.x, t.c.y);
+    }
+    // for (a in 0...10) {
+    //   var p = new Vec2(7, 0);
+    //   p.angle = 2*Math.PI*a/10;
+    //   p.add(player.pos);
+    //   for (t in sight.castLOS(p)) {
+    //     gfx.fill(0xFF0000, 0.1);
+    //     gfx.mt(t.a.x, t.a.y);
+    //     gfx.lt(t.b.x, t.b.y);
+    //     gfx.lt(t.c.x, t.c.y);
+    //   }
+    // }
   }
 }
 
