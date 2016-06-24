@@ -6,13 +6,8 @@ An Unconventional Weapon
 
 */
 
-import vault.ugl.*;
 import flash.geom.Point;
-import flash.geom.Rectangle;
 import vault.ds.Tuple;
-import vault.EMath;
-import vault.geom.Vec2;
-import vault.Ease;
 
 class C {
   static public var black:UInt = 0x010101;

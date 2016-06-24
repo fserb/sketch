@@ -1,11 +1,6 @@
 //@ ugl.bgcolor = 0x303030
 
-import vault.ugl.*;
-import vault.EMath;
-import vault.geom.Vec2;
 import vault.Grid;
-import vault.Act;
-import vault.Ease;
 import vault.Sight;
 import vault.PostProcess;
 

@@ -1,9 +1,5 @@
 //@ ugl.bgcolor = 0xbf1b25
 
-import vault.ugl.*;
-import vault.EMath;
-import vault.Vec2;
-
 class Grow extends Micro {
   static public function main() {
     new Grow("Grow", "");

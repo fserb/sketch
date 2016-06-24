@@ -1,11 +1,5 @@
 //@ ugl.bgcolor = 0xFFFFFF
 
-import vault.ugl.*;
-import flash.geom.Rectangle;
-import vault.EMath;
-import vault.geom.Vec2;
-import vault.Ease;
-
 class Gather extends Micro {
   public var COLORS = [ 0xff6819, 0xc0dc61, 0x1ebed8, 0xfec804, 0xe284cc ];
 

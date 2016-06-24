@@ -1,12 +1,7 @@
 //@ ugl.bgcolor = 0xFFFFFF
 
-import vault.ugl.*;
 import flash.geom.Point;
-import flash.geom.Rectangle;
 import vault.ds.Tuple;
-import vault.EMath;
-import vault.geom.Vec2;
-import vault.Ease;
 
 import vault.algo.Voronoi;
 import vault.algo.Voronoi.Edge;

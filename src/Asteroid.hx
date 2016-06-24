@@ -1,9 +1,5 @@
 //@ ugl.bgcolor = 0xbf1b25
 
-import vault.ugl.*;
-import vault.EMath;
-import vault.geom.Vec2;
-
 class Asteroid extends Micro {
   public var score = 0.0;
   var display: Text;

@@ -5,11 +5,6 @@
 - lives?
 */
 
-import vault.ugl.*;
-import flash.geom.Rectangle;
-import vault.EMath;
-import vault.geom.Vec2;
-
 class Hypermania extends Micro {
   public var player: Player;
   public var score: Float;

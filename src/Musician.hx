@@ -1,9 +1,5 @@
 //@ ugl.bgcolor = 0x444444
 
-import vault.ugl.*;
-import vault.EMath;
-import vault.geom.Vec2;
-
 typedef C = Color.ColorsArne;
 
 class Musician extends Micro {

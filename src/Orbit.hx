@@ -1,12 +1,7 @@
 //@ ugl.bgcolor = 0x8232cd
 
-import vault.ugl.*;
 import flash.geom.Point;
-import flash.geom.Rectangle;
 import vault.ds.Tuple;
-import vault.EMath;
-import vault.geom.Vec2;
-import vault.Ease;
 
 class C extends Color {
   static public var white = 0xecebec;

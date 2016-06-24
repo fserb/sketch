@@ -3,11 +3,6 @@
 
 // TODO:
 
-
-import vault.ugl.*;
-import vault.EMath;
-import vault.geom.Vec2;
-
 typedef C = Color.ColorsArne;
 
 class Jebediah extends Micro {

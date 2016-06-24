@@ -2,8 +2,6 @@
 // based on Aba Games' Satellite Catch
 
 import vault.Rand;
-import vault.ugl.*;
-import vault.geom.Vec2;
 
 class Avoid extends Micro {
   static public function main() {

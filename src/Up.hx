@@ -1,10 +1,6 @@
 //@ ugl.skip
 // based on Aba Games' WASD THRUST
 
-import vault.ugl.*;
-import vault.EMath;
-import vault.geom.Vec2;
-
 class Up extends Micro {
   var camera: Vec2;
   var score: Int;

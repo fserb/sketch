@@ -1,9 +1,5 @@
 //@ ugl.bgcolor = 0x3dbf86
 
-import vault.ugl.*;
-import vault.EMath;
-import vault.geom.Vec2;
-
 class Amaze extends Micro {
   static public function main() {
     new Amaze("Amaze", "maze + jump + key");
