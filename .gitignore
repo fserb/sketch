@@ -1,4 +1,5 @@
 project.xml
 bin
 .atom-build.json
+.build-tools.cson
 vault
